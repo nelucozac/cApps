@@ -1,0 +1,27 @@
+<!Doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>Numbers, squares, cubes</title>
+  <meta charset="UTF-8">
+</head>
+<body><form action="/">
+  Squares and cubes from 1 to (max %d)
+  <input type=text name=n size=4 maxlength=4 value="%.0d">
+  <br><br><a href="/?Xml=on&n=%.0d" target=_blank>
+  Xml format</a><br><br>
+  <table frame=box rules=all>
+    <tr align=center>
+      <td>Number</td>
+      <td>Square</td>
+      <td>Cube</td>
+    </tr>
+    <!-- Break -->
+    <tr align=center>
+      <td>%d</td>
+      <td>%d</td>
+      <td>%D</td>
+    </tr>
+    <!-- Break -->
+  </table>
+</form></body>
+</html>
