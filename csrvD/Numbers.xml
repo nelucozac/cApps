@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Numbers>
+<Inf L="%d" N="%d">
+<!-- Break -->
+<Row n="%d" s="%d" c="%D"/>
+<!-- Break -->
+</Numbers>
