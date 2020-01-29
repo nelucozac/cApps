@@ -1671,7 +1671,8 @@ if (o==0) {
    Secinf.Mtd = SSLv23_server_method();
    #endif
    if (Srvinfo.ss>0) {
-      initSessions(NULL);
+      sprintf(Othinf.Buf,"%s.ssn",Srvcfg.Npg);
+      initSessions(Othinf.Buf);
       }
    Srvcfg.stkT = Srvcfg.stks; /* drop this line if stack is growing upward */
    serverCycle();
