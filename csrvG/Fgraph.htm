@@ -1,0 +1,224 @@
+<!Doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>Le plus court chemin</title>
+  <meta charset="UTF-8">
+  <meta name=viewport content="width=device-width, initial-scale=1">
+  <style type="text/css">
+    body { font-family:sans-serif; font-size:96%  }
+    h1 { font-family:sans-serif; font-size:150%  }
+    *.Atn { color:red }
+    td.Inf { font-size:90%  }
+    .cOut { font-family: Arial; font-size: 10pt; color: black; padding-left: 3px; padding-top: 3px; border: 1px solid black; width: 285px; background: white; }
+    .cShd { width: 287px; position: relative; top: 2px; left: 2px; background: silver; }
+    .cShd div { position:relative; top: -2px; left: -2px; }
+    a:link { color:darkblue; text-decoration:none }
+  </style>
+  <script type="text/javascript"><!--
+
+var Hd = 'hidden', Vs = 'visible', Bk = 'black', Aq = 'aqua', We = 'white';
+var Xht, Sgs, Txf, nTx, Otv, Ntv, key, Out, Ind, nw, po, vi, dv;
+
+function fndP(O,a) {
+ var w = window.ActiveXObject ? 10 : 0;
+ var c = w;
+ if (a=='X') {
+    if (O.offsetParent) {
+       if (dv=='D') c += O.offsetWidth;
+       while (O.offsetParent) {
+          c += O.offsetLeft;  O = O.offsetParent;
+          }
+       }
+    else
+    if (O.x) {
+       c += O.x;
+       if (dv=='D') c += O.width;
+       }
+    }
+ else {
+    if (w) c += 5;
+    if (O.offsetParent) {
+       if (dv=='M') c += O.offsetHeight;
+       while (O.offsetParent) {
+          c += O.offsetTop;  O = O.offsetParent;
+          }
+       }
+    else
+    if (O.y) {
+       c += O.y;
+       if (dv=='M') c += O.height;
+       }
+    }
+ return c;
+ }
+
+function setV(V) {
+ var S = document.getElementById('iShd').style, T;
+ T = Txf;  S.top = (fndP(T,'Y')+3) + 'px';
+ T = Txf;  S.left = (fndP(T,'X')+2) + 'px';
+ S.position = 'absolute';  S.visibility = V;
+ po = -1;  Ntv = Txf.value;  vi = (V==Vs);
+ }
+
+function clrO() {
+ while (Out.hasChildNodes()) {
+    var N = Out.firstChild; Out.removeChild(N);
+    }
+ po = -1;
+ }
+
+function setC(p, b) {
+ var S = Out.childNodes[p].style;
+ S.background = b;
+ if (Ind.charAt(p)=='1') {
+    S.fontWeight = 'bold'; S.color = Bk;
+    }
+ else S.color = 'gray';
+ }
+
+function bgrW() {
+ for (var i=0; i<nw; i++) setC(i,We);
+ }
+
+function keyG(E) {
+ if (!E) if (E=window.event) ;
+ key = E ? E.keyCode : E.which;
+ }
+
+function mOvr() {
+ bgrW();  po = -1;  Txf.value = this.firstChild.nodeValue;
+ this.style.background = Aq;  this.style.color = Bk;
+ }
+
+function mClk() {
+ setV(Hd);
+ }
+
+function mOut() { }
+
+function addW() {
+ var S = document.createElement('div'), l;
+ for (l=0; l<Sgs.length; l++) if (Sgs.charAt(l)=='\n') break;
+ if (l<Sgs.length) {
+    var W = Sgs.substr(0,l);  Sgs = Sgs.substr(l+1,65535);
+    Ind += W.charAt(0);  W = W.substr(1,255);
+    S.appendChild(document.createTextNode(W));
+    S.onmouseover = mOvr;  S.onclick = mClk;  S.onmouseout = mOut;
+    Out.appendChild(S);  nw++;
+    }
+ }
+
+function Fil() {
+ if (Xht.readyState==4) if (Sgs=Xht.responseText) {
+    clrO();  Ind = '';
+    while (Sgs.length) addW();
+    if (nw>0) {
+       bgrW();  setV(Vs);
+       }
+    }
+ }
+
+function keyH(E) {
+ if (nTx=='') return;
+ if (vi)
+    switch (key) {
+       case 40:
+          if (nw>0) {
+             bgrW();
+             if (po+1<nw) po++; 
+             setC(po,Aq);
+             Txf.value = Out.childNodes[po].firstChild.nodeValue;
+             }
+          return;
+       case 38:
+          if ((nw>0) && (po>=0)) {
+             bgrW();
+             if (--po>=0) {
+                setC(po,Aq);
+                Txf.value = Out.childNodes[po].firstChild.nodeValue;
+                }
+             else Txf.value = Ntv;
+             }
+          return;
+       }
+ if (Txf.value==Otv) return;
+ Otv = Txf.value;  setV(Hd);
+ if (Otv.length==0) return;
+ if (Otv.length>0) {
+    nw = 0;  Xht = null;  Sgs = '';
+    if (window.XMLHttpRequest) Xht = new XMLHttpRequest();
+    else
+    if (window.ActiveXObject) Xht = new ActiveXObject('Microsoft.XMLHTTP');
+    if (!Xht) return;
+    var Url = '/?Sub=Help&Dep=' + Otv;
+    Xht.onreadystatechange = Fil;  Xht.open('GET',Url,true);  Xht.send(null);
+    }
+ }
+
+function Fcs(T) {
+ nTx = T;  Txf = document.getElementsByName(T)[0];
+ setV(Hd);  Otv = '';  key = 0;  keyH();
+ }
+
+function stopRKey(E) {
+ if (!E) E = window.event ? window.event : null;
+ var N = E.target;
+ if (!N) N = E.srcElement ? evt.srcElement : null;
+ if (E.keyCode==13) if (N.type=='text') return false;
+ return true;
+ }
+
+function Blr() {
+ if (nTx!='') {
+    setV(Hd);  nTx = '';
+    }
+ }
+
+function Init() {
+ dv = screen.width < 720 ? 'M' : 'D';
+ document.onkeydown = keyG;  document.onkeyup = keyH;
+ Out = document.getElementById('iOut');
+ document.onkeypress = stopRKey;
+ document.Frm.Dep.focus();
+}
+
+  --></script>
+</head>
+<body onload="javascript:Init()"><form name=Frm action="/">
+  <h1>Le plus court chemin</h1>
+  Départ :
+  <input type=text name=Dep autocomplete=off size=35 maxlength=35 value="%s" onfocus="javascript:Fcs(this.name)" onblur="javascript:Blr()">
+  <br><br>
+  Arrivée :
+  <input type=text name=Arv autocomplete=off size=35 maxlength=35 value="%s" onfocus="javascript:Fcs(this.name)" onblur="javascript:Blr()">
+  <br><br>
+  <input type=checkbox name=Dsp> Affichez la route
+  <br><br>
+  <input type=submit name=Sub value="Cherche route">
+  <br><br><table>
+<!-- Break -->
+  <tr><td colspan=2>
+    Chemin généré en %.3f secondes
+  </td></tr>
+  <tr>
+    <td align=center>Cost</td>
+    <td>Node</td>
+  </tr>
+<!-- Break -->
+  <tr>
+    <td align=center>%d</td>
+    <td style="font-weight:%d">%s</td>
+  </tr>
+<!-- Break -->
+  <tr><td colspan=2>
+    Le plus court chemin, nombre des sommets: %d, cost: %d<br>
+    Taille de la page htm (si la route sera affichée): %d Ko(s)
+  </td></tr>
+<!-- Break -->
+  </table><br>Page generée en %.3f seconds
+  <br><br><span style="font-size:105% ">
+  <a href="/?Lng=Eng"><b>English</b></a>
+  </span>
+</form>
+<div class=cShd id=iShd><div class=cOut id=iOut></div></div>
+</body></html>
