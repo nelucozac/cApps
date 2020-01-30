@@ -1305,6 +1305,7 @@ switch (req) {
 if (req!='U')
    nPrintf(&Clon->Co,"Ok server %s %d (release version) %s\n",Othinf.Npg,Othinf.pid,whichCommand(req));
 if (req=='W') {
+   sendToClient(&Clon->Co,NULL,0);
    recv(Clon->sk,Clon->Bf,1020,0);
    if (memcmp(Clon->Bf,"Ok data",7)==0) {
       Srvinfo.data('R');
@@ -1622,6 +1623,7 @@ do {
          nPrintf(&Clon->Co,"Ok server %s %d (debug version) %s\n",Othinf.Npg,Othinf.pid,whichCommand(hk));
          }
       if (hk=='W') {
+         sendToClient(&Clon->Co,NULL,0);
          recv(Clon->sk,Clon->Bf,1020,0);
          if (memcmp(Clon->Bf,"Ok data",7)==0) {
             Srvinfo.data('R');
@@ -1671,7 +1673,7 @@ if (o==0) {
    Secinf.Mtd = SSLv23_server_method();
    #endif
    if (Srvinfo.ss>0) {
-      sprintf(Othinf.Buf,"%s.ssn",Srvcfg.Npg);
+      sprintf(Othinf.Buf,"%s.ssn",Othinf.Npg);
       initSessions(Othinf.Buf);
       }
    Srvcfg.stkT = Srvcfg.stks; /* drop this line if stack is growing upward */
