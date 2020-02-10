@@ -1,8 +1,10 @@
 /*
  License GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
  This is free software: you are free to change and redistribute it.
+ There is NO WARRANTY, to the extent permitted by applicable law.
  Header file, list of data type definitions and predefined functions.
  See attached documentation for details.
+ Author: nelu.cozac@gmail.com
 */
 
 #ifndef _C_application_server_h
@@ -97,7 +99,8 @@ char *getParamName(SRV_conn *Conn, char *From),
      *loadTextFile(char *Nft),
      *buildMimeTypeList(char *Cfg);
 
-void sendFileToClient(SRV_conn *Conn, char *Fnm, char *Rhd, int (*valid)(char *)),
+void sendContentToClient(SRV_conn *Conn, char *Nft, char *Rhf, void *Buf, int siz),
+     sendFileToClient(SRV_conn *Conn, char *Nft, char *Rhf, int (*valid)(char *)),
      nPrintf(SRV_conn *Conn, char *Fmt, ...),
      registerUserSettings(void);
 
