@@ -1,10 +1,12 @@
 /*
  License GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
  This is free software: you are free to change and redistribute it.
+ There is NO WARRANTY, to the extent permitted by applicable law.
  The web server application will accept GET, POST and PUT requests.
  For enctype, only application/x-www-form-urlencoded is accepted.
  Use PUT method to upload files.
  See attached documentation for details.
+ Author: nelu.cozac@gmail.com
 */
 
 #include "cAppserver.h"
@@ -19,7 +21,6 @@ typedef struct {
         } T_cloninfo;
 
 SRV_info Srvinfo;
-
 
 static char *Cmds[] = { "-start", "-stop", "-cnfg", "-data", "-html", "-show", NULL, "-wait" } ;
 
@@ -151,26 +152,38 @@ while (isspace(*Cfg)) Cfg++;
 return Cfg;
 }
 
-void sendFileToClient(SRV_conn *Conn, char *Fnm, char *Rhd, int (*valid)(char *)) {
+static char *searchContentType(char *Nft) {
+char *P,*E,*C;
+int s;
+P = Srvcfg.Mtl;
+E = endOfString(Nft,0);
+do {
+   if (*P=='*') {
+      C = P + 2;
+      break;
+      }
+   s = strlen(P);
+   if (E-Nft>=s) s = strncasecmp(E-s,P,s) == 0;
+      else s = 0;
+   C = endOfString(P,1);
+   if (s) break;
+   P = endOfString(C,1);
+   } while (*P);
+return C;
+}
+
+void sendFileToClient(SRV_conn *Conn, char *Nft, char *Rhf, int (*valid)(char *)) {
 int fh,fs,s;
 char *F,*E,*C,*P;
 fh = 0;
-F = Fnm;
+F = Nft;
 if (P=strrchr(F,'/')) F = P + 1;
-if (valid) if (valid(Fnm)==0)
+if (valid) if (valid(Nft)==0)
    fh--;
 if (fh==0) {
-   P = Srvcfg.Mtl;
-   E = strrchr(F,'.');
-   if (E==NULL) E = "";
-   do {
-      s = *P != '*' ? strcasecmp(P,E) == 0 : 1;
-      C = endOfString(P,1);
-      if (s) break;
-      P = endOfString(C,1);
-      } while (*P);
+   C = searchContentType(Nft);
    if (*C!='?') {
-      fh = open(Fnm,O_RDONLY);
+      fh = open(Nft,O_RDONLY);
       if (fh>0) {
          fs = lseek(fh,0,SEEK_END);
          lseek(fh,0,SEEK_SET);
@@ -180,7 +193,7 @@ if (fh==0) {
    }
 Conn->Pco = Conn->Bfo;
 if (fh>0) {
-   nPrintf(Conn,Rhd,F,C,fs);
+   nPrintf(Conn,Rhf,C,fs,F);
    sendToClient(Conn,NULL,0);
    #ifdef _Secure_application_server
    do {
@@ -197,6 +210,18 @@ if (fh>0) {
    #endif
    }
 else nPrintf(Conn,"%s%s",Srvinfo.Rh[1],strerror(errno));
+}
+
+void sendContentToClient(SRV_conn *Conn, char *Nft, char *Rhf, void *Buf, int siz) {
+char *C;
+C = searchContentType(Nft);
+Conn->Pco = Conn->Bfo;
+if (*C!='?') {
+   nPrintf(Conn,Rhf,C,siz,Nft);
+   sendToClient(Conn,NULL,0);
+   sendToClient(Conn,Buf,siz);
+   }
+else nPrintf(Conn,"%%",Srvinfo.Rh[1],strerror(EACCES));
 }
 
 static void abortConnection(SRV_conn *Conn, char *Ms) {
