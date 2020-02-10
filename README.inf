@@ -15,12 +15,14 @@ The examples cover a lot of problems which can be solved using the framework:
 - use complex data structures: determining an optimum path in a graph;
 - use your own log file to record every request coming from clients;
 - deny requests coming from some particular Ip addresses;
-- develop your own functions which create and return strings without memory allocation / deallocation (dealing with temporary strings);
+- develop your own functions which create and return strings without memory allocation /
+  deallocation (dealing with temporary strings);
 - manage the timeout problem: what to do when time limit to process the request exceeds;
 - use mysql databases;
 - basic authentication, together with Base64 encoding and decoding functions.
 
-Every example includes all the necessary files to build and run the application server: C source files, compile scripts, configuration files, data files (if necessary) etc.
+Every example includes all the necessary files to build and run the application server:
+C source files, compile scripts, configuration files, data files (if necessary) etc.
 
 At this time, only GET requests are used by these examples. POST requests and sessions are not yet covered.
 
