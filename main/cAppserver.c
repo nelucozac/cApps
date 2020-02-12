@@ -1177,8 +1177,9 @@ m = (Clon->Co.Bfo - Pp) * 3;
 if (l>m) l = m;
 c = contentLength(&Clon->Co,l);
 if (c<0) return c;
-if (Srvinfo.post) if (Srvinfo.post(&Clon->Co,c,l)==0)
-   return -1;
+if (Srvinfo.post) if (c>l)
+   if (Srvinfo.post(&Clon->Co,c,l)==0)
+      return -1;
 if (Pr=getHeaderValue(&Clon->Co,"Content-type"))
    if (strcasecmp(Pr,"application/x-www-form-urlencoded")!=0)
       return -6;
@@ -1409,7 +1410,7 @@ do {
 return NULL;
 }
 
-static int prepareAdminRequest(SRV_conn *Conn) {
+static int performAdminRequest(SRV_conn *Conn) {
 char Ip[INET6_ADDRSTRLEN];
 T_cloninfo *Clon;
 int s,k;
@@ -1482,7 +1483,7 @@ do {
       }
    #ifndef _Secure_application_server
    else
-   if (hk==404) hk = prepareAdminRequest(&Clon->Co);
+   if (hk==404) hk = performAdminRequest(&Clon->Co);
    #endif
    if (hk==404) nPrintf(&Clon->Co,"%s Not found\n",Srvinfo.Rh[1]);
    sendToClient(&Clon->Co,NULL,0);
