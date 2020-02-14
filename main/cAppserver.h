@@ -54,7 +54,7 @@
 #include <openssl/err.h>
 #endif
 
-#define endOfString(S,k) ((S)+(strlen(S)+(k)))
+#define endOfString(S, k) ((S) + (strlen(S) + (k)))
 
 typedef struct {
         unsigned char Ipc[16];
@@ -98,6 +98,8 @@ char *getParamName(SRV_conn *Conn, char *From),
      *cPrintf(SRV_conn *Conn, char *Fmt, ...),
      *loadTextFile(char *Nft),
      *buildMimeTypeList(char *Cfg);
+
+#define getThisParamValue(Conn, Pnam) (Pnam + strlen(Pnam) + 1)
 
 void sendContentToClient(SRV_conn *Conn, char *Nft, char *Rhf, void *Buf, int siz),
      sendFileToClient(SRV_conn *Conn, char *Nft, char *Rhf, int (*valid)(char *)),
