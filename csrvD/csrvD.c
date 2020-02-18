@@ -31,7 +31,7 @@ n = atoi(getLastParamValue(Conn,"n"));
 if (n<0) n = 0;
 if (n>Limit) n = Limit;
 if (getParamValue(Conn,"Xml",NULL)) {
-   Conn->Pco = Conn->Bfo;
+   resetOutputBuffer(Conn);
    nPrintf(Conn,Srvinfo.Rh[2]);
    Fmt = Xml;
    }
