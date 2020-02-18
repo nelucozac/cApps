@@ -91,7 +91,7 @@ return Out;
 }
 
 static void sendUnauthorized(SRV_conn *Conn) {
-Conn->Pco = Conn->Bfo;
+resetOutputBuffer(Conn);
 nPrintf(Conn,Srvinfo.Rh[2]);
 nPrintf(Conn,"You must enter User name and Password");
 }
