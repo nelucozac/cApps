@@ -61,7 +61,7 @@ typedef struct {
         long double tim;
         time_t uts;
         char *Bfi, *Bfo, *Bft;
-        char *Pco, *Pct, *Pet;
+        char *Pct, *Pet;
         char Ufn[4];
         volatile char tmo;
         void *Usr, *Ssn;
@@ -104,6 +104,7 @@ char *getParamName(SRV_conn *Conn, char *From),
 void sendContentToClient(SRV_conn *Conn, char *Nft, char *Rhf, void *Buf, int siz),
      sendFileToClient(SRV_conn *Conn, char *Nft, char *Rhf, int (*valid)(char *)),
      nPrintf(SRV_conn *Conn, char *Fmt, ...),
+     resetOutputBuffer(SRV_conn *Conn),
      registerUserSettings(void);
 
 void newSession(SRV_conn *Conn),
