@@ -22,7 +22,7 @@ typedef struct {
 
 SRV_info Srvinfo;
 
-static char *Cmds[] = { "-start", "-stop", "-cnfg", "-data", "-html", "-show", NULL, "-wait" } ;
+static char *Cmds[] = { "--start", "--stop", "--cnfg", "--data", "--html", "--show", NULL, "--wait" } ;
 
 static struct {
        int stks, sBfi, sBfo, sBft, port, stkT;
@@ -89,12 +89,12 @@ Bf = strchr(Conn->Bfi,' ');
 if (Bf==NULL) return 404;
 if (strcmp(Bf+1,Srvcfg.Pswd)!=0) return 404;
 Bf = Conn->Bfi;
-if (memcmp(Bf,Cmds[2],5)==0) return 'C';
-if (memcmp(Bf,Cmds[3],5)==0) return 'D';
-if (memcmp(Bf,Cmds[4],5)==0) return 'H';
-if (memcmp(Bf,Cmds[5],5)==0) return 'S';
-if (memcmp(Bf,Cmds[7],5)==0) return 'W';
-if (memcmp(Bf,Cmds[1],5)==0) return 'Z';
+if (memcmp(Bf,Cmds[2],6)==0) return 'C';
+if (memcmp(Bf,Cmds[3],6)==0) return 'D';
+if (memcmp(Bf,Cmds[4],6)==0) return 'H';
+if (memcmp(Bf,Cmds[5],6)==0) return 'S';
+if (memcmp(Bf,Cmds[7],6)==0) return 'W';
+if (memcmp(Bf,Cmds[1],6)==0) return 'Z';
 return 404;
 }
 
