@@ -17,7 +17,7 @@ typedef struct {
         #ifdef _Secure_application_server
         SSL *ssl;
         #endif
-        char *Bf, *Pm, *Hm, rq;
+        char *Bf, *Pm, *Hm, *Po, rq;
         } T_cloninfo;
 
 SRV_info Srvinfo;
@@ -61,6 +61,10 @@ static struct {
 #endif
 
 static void errorMessage(char *, int);
+
+void resetOutputBuffer(SRV_conn *Conn) {
+((T_cloninfo *)Conn)->Po = Conn->Bfo;
+}
 
 void convertBinaryToName(char *Nam, int np, unsigned long long val) {
 static char Dgts[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
@@ -109,7 +113,7 @@ static void sendToClient(SRV_conn *Conn, char *Bf, int ls) {
 int s;
 if (Bf==NULL) {
    Bf = Conn->Bfo;
-   ls = Conn->Pco - Bf;
+   ls = ((T_cloninfo *)Conn)->Po - Bf;
    }
 if (ls>0) {
    do {
@@ -125,7 +129,7 @@ if (ls>0) {
       ls -= s;
       } while (1);
    memset(Conn->Bfo,0,Conn->Bft-Conn->Bfo);
-   Conn->Pco = Conn->Bfo;
+   ((T_cloninfo *)Conn)->Po = Conn->Bfo;
    }
 }
 
@@ -191,7 +195,7 @@ if (fh==0) {
       }
    else errno = EACCES;
    }
-Conn->Pco = Conn->Bfo;
+((T_cloninfo *)Conn)->Po = Conn->Bfo;
 if (fh>0) {
    nPrintf(Conn,Rhf,C,fs,F);
    sendToClient(Conn,NULL,0);
@@ -215,7 +219,7 @@ else nPrintf(Conn,"%s%s",Srvinfo.Rh[1],strerror(errno));
 void sendContentToClient(SRV_conn *Conn, char *Nft, char *Rhf, void *Buf, int siz) {
 char *C;
 C = searchContentType(Nft);
-Conn->Pco = Conn->Bfo;
+((T_cloninfo *)Conn)->Po = Conn->Bfo;
 if (*C!='?') {
    nPrintf(Conn,Rhf,C,siz,Nft);
    sendToClient(Conn,NULL,0);
@@ -228,12 +232,12 @@ static void abortConnection(SRV_conn *Conn, char *Ms) {
 struct tm Tim;
 int r;
 inet_ntop(Srvinfo.af,Conn->Ipc,Conn->Bft,INET6_ADDRSTRLEN);
-Conn->Pco = Conn->Bfo;
+((T_cloninfo *)Conn)->Po = Conn->Bfo;
 localtime_r(&Conn->uts,&Tim);
 nPrintf(Conn,"%d/%02d/%02d %d:%02d %s from %s\n",Tim.tm_year+1900,Tim.tm_mon+1,Tim.tm_mday,Tim.tm_hour,Tim.tm_min,Ms,Conn->Bft);
 #ifdef _Release_application_server
 r = write(Othinf.err,Conn->Bfo,strlen(Conn->Bfo));
-Conn->Pco = Conn->Bfo;
+((T_cloninfo *)Conn)->Po = Conn->Bfo;
 nPrintf(Conn,"%s%s\n",Srvinfo.Rh[1],Ms);
 #else
 fputs(Conn->Bfo,stderr);
@@ -287,8 +291,16 @@ if (Lstclon.Cl) {
 exit(1);
 }
 
+static void closeSocket(T_cloninfo *Clon) {
+#ifdef _Secure_application_server
+if (Clon->Co.ssl) SSL_free(Clon->Co.ssl);
+#endif
+close(Clon->sk);
+Clon->sk = Clon->rq = 0;
+}
+
 static void processSignal(int snl) {
-int p;
+int p,s;
 char *Me,*P;
 struct tm Tim;
 T_cloninfo *Clon;
@@ -300,26 +312,34 @@ if (snl==SIGCHLD) {
 p = getpid();
 for (Clon=Lstclon.Cl; Clon->Sb; Clon++)
     if (Clon->pd==p) break;
-if (!Clon->Sb || !Clon->Bf) exit(1);
+if (Clon->Sb==NULL) exit(1);
 if (snl==SIGALRM) if (Clon->Co.tmo==0) {
    Clon->Co.tmo++;
    return;
    }
-if (Clon->Co.Bfo==Clon->Co.Pco)
-   nPrintf(&Clon->Co,Srvinfo.Rh[1]);
-Me = sys_siglist[snl];
+Me = (char *)sys_siglist[snl];
 nPrintf(&Clon->Co,Me);
 sendToClient(&Clon->Co,NULL,0);
-close(Clon->sk);
-Clon->Co.Pct = Clon->Co.Bft + 1;
+closeSocket(Clon);
 localtime_r(&Clon->Co.uts,&Tim);
 Me = Clon->Co.Bfo + sprintf(Clon->Co.Bfo,"%d/%02d/%02d %d:%02d %s\n",Tim.tm_year+1900,
                             Tim.tm_mon+1,Tim.tm_mday,Tim.tm_hour,Tim.tm_min,Me);
+for (s=0,P=Clon->Pm; *P; ) {
+    p = strlen(P) + 1;
+    P = endOfString(P,1);
+    p += strlen(P) + 1;
+    if (s<p) s = p;
+    }
+p = (P - Clon->Pm) + 4;
+memmove(Clon->Bf,Clon->Pm,p);
+Clon->Pm = Clon->Bf;
+Clon->Co.Bfo = Clon->Bf + p;
+Clon->Co.Bft = Clon->Co.Pet - s * 3 - 4;
 for (P=Clon->Pm; *P; ) {
+    Clon->Co.Pct = Clon->Co.Bft + 1;
     Me += sprintf(Me," %s",convertString(&Clon->Co,P,'U'));
     P = endOfString(P,1);
     Me += sprintf(Me,"=%s",convertString(&Clon->Co,P,'U'));
-    Clon->Co.Pct = Clon->Co.Bft + 1;
     P = endOfString(P,1);
     }
 Me += sprintf(Me,"\n");
@@ -346,17 +366,17 @@ if (snl==SIGALRM) Lstclon.Cl[0].Co.tmo = 1;
 static void nPuts(SRV_conn *Conn, char *Buf, int len) {
 int d;
 do {
-   d = Conn->Bft - Conn->Pco;
+   d = Conn->Bft - ((T_cloninfo *)Conn)->Po;
    if (d>len) break;
-   memcpy(Conn->Pco,Buf,d);
-   Conn->Pco += d;
+   memcpy(((T_cloninfo *)Conn)->Po,Buf,d);
+   ((T_cloninfo *)Conn)->Po += d;
    sendToClient(Conn,NULL,0);
    Buf += d;
    len -= d;
    } while (1);
 if (len>0) {
-   memcpy(Conn->Pco,Buf,len);
-   Conn->Pco += len;
+   memcpy(((T_cloninfo *)Conn)->Po,Buf,len);
+   ((T_cloninfo *)Conn)->Po += len;
    }
 }
 
@@ -834,7 +854,6 @@ if (Srvcfg.norp>0) {
    if (Srvcfg.norp>=Srvcfg.sBfi) Srvcfg.sBfi = Srvcfg.norp + 1024;
    }
 Srvcfg.sBfo = (Srvcfg.sBfo + 1023) & 0xffffc00;
-if (Srvcfg.sBfo<=Srvcfg.sBfi) Srvcfg.sBfo = Srvcfg.sBfi + 1024;
 Srvcfg.sBft = (Srvcfg.sBft + 1023) & 0xffffc00;
 Srvcfg.lbf = Srvcfg.sBfi + Srvcfg.sBfo + Srvcfg.sBft;
 if (Lstclon.nc>0) {
@@ -1203,14 +1222,6 @@ memset(Pr-2,0,Srvcfg.sBfo+Srvcfg.sBft+2);
 return 200;
 }
 
-static void closeSocket(T_cloninfo *Clon) {
-#ifdef _Secure_application_server
-if (Clon->Co.ssl) SSL_free(Clon->Co.ssl);
-#endif
-close(Clon->sk);
-Clon->sk = Clon->rq = 0;
-}
-
 static int receiveRequest(T_cloninfo *Clon) {
 int k;
 char *Bi;
@@ -1230,7 +1241,7 @@ if (k>0) {
    }
 #endif
 memset(Bi,0,Srvcfg.lbf);
-Clon->Co.Bfo = Clon->Co.Pco = Bi + Srvcfg.sBfi;
+Clon->Co.Bfo = Clon->Po = Bi + Srvcfg.sBfi;
 Clon->Co.Bft = Clon->Co.Bfo + Srvcfg.sBfo;
 Clon->Co.Pct = Clon->Co.Bft + 1;
 Clon->Co.Pet = Clon->Co.Bft + Srvcfg.sBft;
@@ -1520,7 +1531,7 @@ if (Srvinfo.af==AF_INET) Secinf.Psa = &Secinf.Sado.sin_addr.s_addr;
    else Secinf.Psa = Secinf.Sadn.sin6_addr.s6_addr;
 Conn->Prm = Conn->Hdr = "";
 do {
-   Conn->Pco = Conn->Bfi;
+   ((T_cloninfo *)Conn)->Po = Conn->Bfi;
    if (Oinf.snl) kill(Oinf.pid,SIGCONT);
    Conn->sts = 1;
    Pos.fd = Secinf.dsk;
