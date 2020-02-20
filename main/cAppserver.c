@@ -853,6 +853,7 @@ if (Srvcfg.norp>0) {
    Srvcfg.norp = (Srvcfg.norp + 1023) & 0xffffc00;
    if (Srvcfg.norp>=Srvcfg.sBfi) Srvcfg.sBfi = Srvcfg.norp + 1024;
    }
+if (Srvinfo.ss>0) Srvcfg.sBft += Srvinfo.ss + 40;
 Srvcfg.sBfo = (Srvcfg.sBfo + 1023) & 0xffffc00;
 Srvcfg.sBft = (Srvcfg.sBft + 1023) & 0xffffc00;
 Srvcfg.lbf = Srvcfg.sBfi + Srvcfg.sBfo + Srvcfg.sBft;
