@@ -78,12 +78,6 @@ typedef struct {
         } SRV_info;
 extern SRV_info Srvinfo;
 
-typedef struct {
-        char Sid[12];
-        unsigned char Ipc[16];
-        long long etm;
-        } SSN_info;
-
 long double getTime(SRV_conn *Conn);
 
 int explodeHtm(char *Htmi, void *Htmo, int siz),
