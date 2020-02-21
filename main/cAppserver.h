@@ -101,14 +101,14 @@ void sendContentToClient(SRV_conn *Conn, char *Nft, char *Rhf, void *Buf, int si
      resetOutputBuffer(SRV_conn *Conn),
      registerUserSettings(void);
 
-void newSession(SRV_conn *Conn),
+void createSession(SRV_conn *Conn),
      checkSession(SRV_conn *Conn, char *Sid),
-     closeSession(SRV_conn *Conn, char *Sid);
+     updateSession(SRV_conn *Conn),
+     deleteSession(SRV_conn *Conn);
 
 /* The following functions are for internal use */
 void convertBinaryToName(char *Nam, int np, unsigned long long val),
-     initSessions(char *Sfn),
-     writeSession(SRV_conn *Conn);
+     initSessionSupport(char *Sfn);
 /* and should not be called by developers */
 
 #endif
