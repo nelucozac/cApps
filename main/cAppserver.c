@@ -1291,7 +1291,7 @@ nPrintf(Conn,Srvinfo.Rh[0]);
 setitimer(ITIMER_REAL,&Srvcfg.Tpro,NULL);
 Srvinfo.preq(Conn);
 setitimer(ITIMER_REAL,&Srvcfg.Trst,NULL);
-if (Srvinfo.ss>0) writeSession(Conn);
+if (Srvinfo.ss>0) updateSession(Conn);
 }
 
 int serverMutex(SRV_conn *Conn, int *Mtx, char op) {
@@ -1714,7 +1714,7 @@ if (o==0) {
    #endif
    if (Srvinfo.ss>0) {
       sprintf(Othinf.Buf,"%s.ssn",Othinf.Npg);
-      initSessions(Othinf.Buf);
+      initSessionSupport(Othinf.Buf);
       }
    Srvcfg.stkT = Srvcfg.stks; /* drop this line if stack is growing upward */
    serverCycle();
