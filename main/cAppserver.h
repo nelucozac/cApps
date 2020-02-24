@@ -106,6 +106,8 @@ void createSession(SRV_conn *Conn),
      updateSession(SRV_conn *Conn),
      deleteSession(SRV_conn *Conn);
 
+SRV_conn *allocSessionSpace(void);
+
 /* The following functions are for internal use */
 void convertBinaryToName(char *Nam, int np, unsigned long long val),
      initSessionSupport(char *Sfn);
