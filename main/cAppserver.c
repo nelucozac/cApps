@@ -1030,7 +1030,7 @@ do {
          }
       *Ds++ = c;
       } while (1);
-   if (s==0) if (*(Ds-1))
+   if (s==0) if (*(Ds-1)==0)
       *Ds++ = '_';
    *Ds++ = 0;
    s = 1 - s;
@@ -1195,7 +1195,7 @@ memmove(Pr,Pp,s);
 Pr[s+1] = 0;
 Clon->Pm = Pp = Pr;
 l = Clon->Co.Pet - Pp - 4;
-m = (Clon->Co.Bfo - Pp) * 3;
+m = (Clon->Co.Bfo - Pp) * 3 - 4;
 if (l>m) l = m;
 c = contentLength(&Clon->Co,l);
 if (c<0) return c;
