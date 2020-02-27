@@ -5,14 +5,14 @@
 
 #include "datsG.h"
 
-typedef struct { char *Fh, *D, *A; } USER_info;
+typedef struct { char *Fh, *D, *A; } T_userinf;
 
-static USER_info Fran, Engl;
+static T_userinf Fran, Engl;
 
 static void manageUserHtml(char op) {
 if (op=='L') {
-   Fran.Fh = loadTextFile("Fgraph.htm");
-   Engl.Fh = loadTextFile("Egraph.htm");
+   Fran.Fh = CAS_loadTextFile("Fgraph.htm");
+   Engl.Fh = CAS_loadTextFile("Egraph.htm");
    }
 else {
    free(Fran.Fh);
@@ -20,9 +20,9 @@ else {
    }
 }
 
-static INF_node **nodeSearch(char *Nod, int ls) {
+static T_nodeinf **nodeSearch(char *Nod, int ls) {
 int l,r,m,d;
-INF_node **Pn;
+T_nodeinf **Pn;
 l = 0;
 r = Graph.nn - 1;
 do {
@@ -39,11 +39,11 @@ do {
 return NULL;
 }
 
-static void displayHelp(SRV_conn *Conn) {
+static void displayHelp(CAS_srvconn_t *Conn) {
 char *Pvn,*P;
 int lw,k;
-INF_node **Pnm;
-USER_info *Prms;
+T_nodeinf **Pnm;
+T_userinf *Prms;
 Prms = Conn->Usr;
 if (*Prms->D) do {
    lw = strlen(Prms->D);
@@ -54,7 +54,7 @@ if (*Prms->D) do {
    while (k<10) {
          P = Pnm[0]->N + 1;
          if (strcasecmp(P,Pvn)!=0) {
-            nPrintf(Conn,"%s\n",P-1);
+            CAS_nPrintf(Conn,"%s\n",P-1);
             Pvn = P;
             k++;
             }
@@ -64,12 +64,12 @@ if (*Prms->D) do {
    } while (0);
 }
 
-static void displayRoute(SRV_conn *Conn) {
+static void displayRoute(CAS_srvconn_t *Conn) {
 char *Fmt,*P;
 int dep,arv,lw,tp,s,nv;
-INF_node **Pnm;
-VMARK Mk;
-USER_info *Prms;
+T_nodeinf **Pnm;
+T_vmark Mk;
+T_userinf *Prms;
 Prms = Conn->Usr;
 dep = arv = 0;
 if (*Prms->D) {
@@ -80,18 +80,18 @@ if (*Prms->A) {
    lw = strlen(Prms->A);
    if (Pnm=nodeSearch(Prms->A,lw)) arv = Pnm[0]->k;
    }
-nPrintf(Conn,Prms->Fh,Prms->D,Prms->A);
-Fmt = endOfString(Prms->Fh,1);
+CAS_nPrintf(Conn,Prms->Fh,Prms->D,Prms->A);
+Fmt = CAS_endOfString(Prms->Fh,1);
 memset(&Mk,0,sizeof(Mk));
 Mk.n = -1;
 tp = 0;
-P = getLastParamValue(Conn,"Dsp");
+P = CAS_getLastParamValue(Conn,"Dsp");
 if (dep>0) if (arv>0) if (dep!=arv) {
    minCostPath(dep,arv,&Mk);
-   nPrintf(Conn,Fmt,getTime(NULL)-Conn->tim);
+   CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
    if (*P) tp = strlen(Prms->Fh);
    }
-Fmt = endOfString(Fmt,1);
+Fmt = CAS_endOfString(Fmt,1);
 s = strlen(Fmt);
 nv = Mk.n + 1;
 while (Mk.n>=0) {
@@ -99,15 +99,15 @@ while (Mk.n>=0) {
    Prms->D = Graph.In[dep].N;
    lw = Prms->D[0] == '1' ? 800 : 400;
    tp += strlen(Prms->D) + s;
-   if (*P) nPrintf(Conn,Fmt,Mk.C[dep],lw,Prms->D+1);
+   if (*P) CAS_nPrintf(Conn,Fmt,Mk.C[dep],lw,Prms->D+1);
    }
-Fmt = endOfString(Fmt,1);
+Fmt = CAS_endOfString(Fmt,1);
 if (tp>0) if (*P==0) {
    tp = (tp + 1023) / 1024;
-   nPrintf(Conn,Fmt,nv,Mk.C[arv],tp);
+   CAS_nPrintf(Conn,Fmt,nv,Mk.C[arv],tp);
    }
-Fmt = endOfString(Fmt,1);
-nPrintf(Conn,Fmt,getTime(NULL)-Conn->tim);
+Fmt = CAS_endOfString(Fmt,1);
+CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
 }
 
 static void strCopy(char *Tg, char *So) {
@@ -130,29 +130,29 @@ if (Q>Tg) {
 Q[1] = 0;
 }
 
-static void processRequest(SRV_conn *Conn) {
+static void processRequest(CAS_srvconn_t *Conn) {
 char *Str;
-USER_info Prms;
+T_userinf Prms;
 int l;
-Str = getLastParamValue(Conn,"Lng");
+Str = CAS_getLastParamValue(Conn,"Lng");
 Conn->Usr = &Prms;
-if (*Str=='E') memcpy(&Prms,&Engl,sizeof(USER_info));
-   else memcpy(&Prms,&Fran,sizeof(USER_info));
-Str = getLastParamValue(Conn,"Dep");
+if (*Str=='E') memcpy(&Prms,&Engl,sizeof(T_userinf));
+   else memcpy(&Prms,&Fran,sizeof(T_userinf));
+Str = CAS_getLastParamValue(Conn,"Dep");
 l = strlen(Str) + 2;
 Prms.D = Conn->Pet - l;
 strCopy(Prms.D,Str);
-Str = getLastParamValue(Conn,"Arv");
+Str = CAS_getLastParamValue(Conn,"Arv");
 l += strlen(Str) + 2;
 Prms.A = Prms.D - l;
 strCopy(Prms.A,Str);
-Str = getLastParamValue(Conn,"Sub");
+Str = CAS_getLastParamValue(Conn,"Sub");
 if (*Str=='H') displayHelp(Conn);
    else displayRoute(Conn);
 }
 
-void registerUserSettings() {
-Srvinfo.preq = processRequest;
-Srvinfo.data = manageUserData;
-Srvinfo.html = manageUserHtml;
+void CAS_registerUserSettings() {
+CAS_Srvinfo.preq = processRequest;
+CAS_Srvinfo.data = manageUserData;
+CAS_Srvinfo.html = manageUserHtml;
 }
