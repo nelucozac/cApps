@@ -5,15 +5,15 @@
 
 #include "cAppserver.h"
 
-typedef struct { int p; char *W; } INF_word;
+typedef struct { int p; char *W; } T_wordinf;
 
 static struct { 
-       INF_word *Wrd;
+       T_wordinf *Wrd;
        int nwo, mlw, mld, dfh, mtx;
        char *Bfi, *Htm;
        } Dic_inf;
 
-typedef struct { char *W, *D; } USR_info;
+typedef struct { char *W, *D; } T_userinf;
 
 static char *myScanf(char *Bfi, char *Fmt, ...) {
 va_list Prms;
@@ -53,10 +53,10 @@ return Bfi;
 }
 
 static int cmpW(const void *A, const void *B) {
-INF_word *P, *Q;
+T_wordinf *P, *Q;
 int d;
-P = (INF_word *)A;
-Q = (INF_word *)B;
+P = (T_wordinf *)A;
+Q = (T_wordinf *)B;
 if (d=strcmp(P->W,Q->W)) return d;
 return P->p - Q->p;
 }
@@ -64,10 +64,10 @@ return P->p - Q->p;
 static void loadUserData(void) {
 char *Inp,*Out;
 int k,l;
-INF_word *Pinfw;
-Dic_inf.Bfi = Inp = Out = loadTextFile("Dictio.idx");
+T_wordinf *Pinfw;
+Dic_inf.Bfi = Inp = Out = CAS_loadTextFile("Dictio.idx");
 Inp = myScanf(Inp,"dd",&Dic_inf.nwo,&Dic_inf.mld);
-Dic_inf.Wrd = calloc(Dic_inf.nwo+1,sizeof(INF_word));
+Dic_inf.Wrd = calloc(Dic_inf.nwo+1,sizeof(T_wordinf));
 Dic_inf.mlw = 0;
 for (k=0,Pinfw=Dic_inf.Wrd; k<Dic_inf.nwo; k++,Pinfw++) {
     Pinfw->W = Out;
@@ -76,7 +76,7 @@ for (k=0,Pinfw=Dic_inf.Wrd; k<Dic_inf.nwo; k++,Pinfw++) {
     if (Dic_inf.mlw<l) Dic_inf.mlw = l;
     Out += l + 1;
     }
-qsort(Dic_inf.Wrd,Dic_inf.nwo,sizeof(INF_word),cmpW);
+qsort(Dic_inf.Wrd,Dic_inf.nwo,sizeof(T_wordinf),cmpW);
 Dic_inf.Wrd[Dic_inf.nwo].W = "~";
 Dic_inf.dfh = open("Dictio.dat",O_RDWR);
 }
@@ -93,13 +93,13 @@ if (op=='L') loadUserData();
 }
 
 static void manageUserHtml(char op) {
-if (op=='L') Dic_inf.Htm = loadTextFile("Dictio.htm");
+if (op=='L') Dic_inf.Htm = CAS_loadTextFile("Dictio.htm");
    else free(Dic_inf.Htm);
 }
 
-static INF_word *wordSearch(char *Wrd, int ls) {
+static T_wordinf *wordSearch(char *Wrd, int ls) {
 int l,r,m,d;
-INF_word *Pinfw;
+T_wordinf *Pinfw;
 l = 0;
 r = Dic_inf.nwo - 1;
 do {
@@ -116,11 +116,11 @@ do {
 return NULL;
 }
 
-static void displayHelp(SRV_conn *Conn) {
+static void displayHelp(CAS_srvconn_t *Conn) {
 char *Wrd,*Pvw;
 int lw,k;
-INF_word *Pinfw;
-Wrd = ((USR_info *)Conn->Usr)->W;
+T_wordinf *Pinfw;
+Wrd = ((T_userinf *)Conn->Usr)->W;
 if (*Wrd) do {
    lw = strlen(Wrd);
    k = 0;
@@ -129,7 +129,7 @@ if (*Wrd) do {
    Pvw = "";
    while (k<10) {
          if (strcmp(Pinfw->W,Pvw)!=0) {
-            nPrintf(Conn,"%s\n",Pinfw->W);
+            CAS_nPrintf(Conn,"%s\n",Pinfw->W);
             Pvw = Pinfw->W;
             k++;
             }
@@ -139,31 +139,31 @@ if (*Wrd) do {
    } while (0);
 }
 
-static void displayDefs(SRV_conn *Conn) {
+static void displayDefs(CAS_srvconn_t *Conn) {
 char *Fmt,*Wrd,*Def,*P;
-INF_word *Pinfw;
+T_wordinf *Pinfw;
 int l;
-Wrd = ((USR_info *)Conn->Usr)->W;
-nPrintf(Conn,Dic_inf.Htm,Wrd);
-Fmt = endOfString(Dic_inf.Htm,1);
-Def = ((USR_info *)Conn->Usr)->D;
+Wrd = ((T_userinf *)Conn->Usr)->W;
+CAS_nPrintf(Conn,Dic_inf.Htm,Wrd);
+Fmt = CAS_endOfString(Dic_inf.Htm,1);
+Def = ((T_userinf *)Conn->Usr)->D;
 if (*Wrd) do {
    Pinfw = wordSearch(Wrd,strlen(Wrd)+1);
    if (Pinfw==NULL) break;
-   Fmt = endOfString(Dic_inf.Htm,1);
+   Fmt = CAS_endOfString(Dic_inf.Htm,1);
    do {
-      serverMutex(Conn,&Dic_inf.mtx,'L');
+      CAS_serverMutex(Conn,&Dic_inf.mtx,'L');
       lseek(Dic_inf.dfh,Pinfw->p,SEEK_SET);
       l = read(Dic_inf.dfh,Def,Dic_inf.mld);
-      serverMutex(Conn,&Dic_inf.mtx,'R');
+      CAS_serverMutex(Conn,&Dic_inf.mtx,'R');
       if (P=strchr(Def,'\n')) *P = 0;
       Def[l] = 0;
-      nPrintf(Conn,Fmt,Wrd,Def);
+      CAS_nPrintf(Conn,Fmt,Wrd,Def);
       Pinfw++;
       } while (strcmp(Pinfw->W,Wrd)==0);
    } while (0);
-Fmt = endOfString(Fmt,1);
-nPrintf(Conn,Fmt,getTime(NULL)-Conn->tim);
+Fmt = CAS_endOfString(Fmt,1);
+CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
 }
 
 static void strCopy(char *Ds, char *So, int ls) {
@@ -177,25 +177,25 @@ while (c=*So++) if (isalpha(c)) {
 *Ds = 0;
 }
 
-static void processRequest(SRV_conn *Conn) {
+static void processRequest(CAS_srvconn_t *Conn) {
 char *P;
 int l;
-USR_info Prms;
+T_userinf Prms;
 Conn->Usr = &Prms;
-P = getLastParamValue(Conn,"W");
+P = CAS_getLastParamValue(Conn,"W");
 l = strlen(P);
 if (l>Dic_inf.mlw) l = Dic_inf.mlw;
 Prms.W = Conn->Pet - l - 3;
 strCopy(Prms.W,P,l);
 Conn->Pet = Prms.D = Prms.W - Dic_inf.mld - 3;
-P = getLastParamValue(Conn,"O");
+P = CAS_getLastParamValue(Conn,"O");
 if (*P=='H') displayHelp(Conn);
    else displayDefs(Conn);
 }
 
-void registerUserSettings(void) {
-Srvinfo.preq = processRequest;
-Srvinfo.data = manageUserData;
-Srvinfo.html = manageUserHtml;
+void CAS_registerUserSettings(void) {
+CAS_Srvinfo.preq = processRequest;
+CAS_Srvinfo.data = manageUserData;
+CAS_Srvinfo.html = manageUserHtml;
 Dic_inf.mtx = 1;
 }
