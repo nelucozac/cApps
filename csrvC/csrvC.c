@@ -5,7 +5,7 @@
 
 #include "cAppserver.h"
 
-static void rewriteRules(SRV_conn *Conn) {
+static void rewriteRules(CAS_srvconn_t *Conn) {
 char *P,c;
 P = strchr(Conn->Bfi,'/') + 1;
 if ((*P==0) || isspace(*P) || (*P=='?')) return;
@@ -24,21 +24,21 @@ do {
 }
 
 static void userConfig(char *Cfg) {
-Cfg = buildMimeTypeList(Cfg);
+Cfg = CAS_buildMimeTypeList(Cfg);
 /* Cfg points to the next information on this section */
 }
 
-static void processRequest(SRV_conn *Conn) {
+static void processRequest(CAS_srvconn_t *Conn) {
 char *Fnm;
-if (Fnm=getParamValue(Conn,"File",NULL)) {
-   sendFileToClient(Conn,Fnm,Srvinfo.Rh[2],NULL);
+if (Fnm=CAS_getParamValue(Conn,"File",NULL)) {
+   CAS_sendFileToClient(Conn,Fnm,CAS_Srvinfo.Rh[2],NULL);
    return;
    }
-nPrintf(Conn,"Vous n'avez pas demandé aucun fichier");
+CAS_nPrintf(Conn,"Vous n'avez pas demandé aucun fichier");
 }
 
-void registerUserSettings(void) {
-Srvinfo.preq = processRequest;
-Srvinfo.cnfg = userConfig;
-Srvinfo.rwrl = rewriteRules;
+void CAS_registerUserSettings(void) {
+CAS_Srvinfo.preq = processRequest;
+CAS_Srvinfo.cnfg = userConfig;
+CAS_Srvinfo.rwrl = rewriteRules;
 }
