@@ -8,7 +8,7 @@
 
 #define Infinity (INT_MAX/2)
 
-INF_graph Graph;
+T_graphinf Graph;
 
 static char *myScanf(char *Bfi, char *Fmt, ...) {
 va_list Prms;
@@ -53,24 +53,24 @@ return Bfi;
 }
 
 static int cmpN(const void *A, const void *B) {
-INF_node **P, **Q;
-P = (INF_node **)A;
-Q = (INF_node **)B;
+T_nodeinf **P, **Q;
+P = (T_nodeinf **)A;
+Q = (T_nodeinf **)B;
 return strcasecmp(P[0]->N+1,Q[0]->N+1);
 }
 
 static void loadUserData(void) {
 char *Inp,*Out,*Lnk,*P;
 int k,l,x,y,c;
-INF_succ *Ps;
-static INF_node Fnod;
+T_succinf *Ps;
+static T_nodeinf Fnod;
 Graph.ml = 0;
-Inp = Out = loadTextFile("Graph.nod");
+Inp = Out = CAS_loadTextFile("Graph.nod");
 Inp = myScanf(Inp,"d",&Graph.nn);
-Graph.In = calloc(Graph.nn+1,sizeof(INF_node));
-Graph.Ia = calloc(Graph.nn+1,sizeof(INF_node *));
+Graph.In = calloc(Graph.nn+1,sizeof(T_nodeinf));
+Graph.Ia = calloc(Graph.nn+1,sizeof(T_nodeinf *));
 Graph.In[0].N = Out;
-Graph.Sc = calloc(Graph.nn+2,sizeof(INF_succ **));
+Graph.Sc = calloc(Graph.nn+2,sizeof(T_succinf **));
 for (k=0; k<Graph.nn; k++) {
     Inp = myScanf(Inp,"dcS",&x,Out,Out+1);
     Graph.In[x].k = x;
@@ -80,12 +80,12 @@ for (k=0; k<Graph.nn; k++) {
     Out += l + 1;
     if (Graph.ml<l) Graph.ml = l;
     }
-qsort(Graph.Ia,Graph.nn,sizeof(INF_node *),cmpN);
+qsort(Graph.Ia,Graph.nn,sizeof(T_nodeinf *),cmpN);
 Graph.Ia[Graph.nn] = &Fnod;
 Fnod.N = "";
-Lnk = loadTextFile("Graph.lnk");
+Lnk = CAS_loadTextFile("Graph.lnk");
 P = myScanf(Lnk,"d",&k);
-Graph.Sc[0] = Ps = calloc(k+1,sizeof(INF_succ));
+Graph.Sc[0] = Ps = calloc(k+1,sizeof(T_succinf));
 do {
    x = -1;
    P = myScanf(P,"dd",&x,&k);
@@ -101,7 +101,7 @@ Graph.Sc[Graph.nn] = Ps;
 free(Lnk);
 }
 
-static int extractFromQueue(VMARK *Mk) {
+static int extractFromQueue(T_vmark *Mk) {
 int x,y,k,l,w,c,*Q;
 for (k=0,Q=Mk->Q,c=Infinity; k<Mk->n; k++) {
     y = *Q++;
@@ -117,7 +117,7 @@ Mk->E[x]++;
 return x;
 }
 
-static int modifyCost(VMARK *Mk, int y, int w) {
+static int modifyCost(T_vmark *Mk, int y, int w) {
 if (Mk->C[y]<=w) return 0;
 Mk->C[y] = w;
 if (Mk->E[y]<0) {
@@ -127,9 +127,9 @@ if (Mk->E[y]<0) {
 return 1;
 }
 
-void minCostPath(int dep, int arv, VMARK *Mk) {
+void minCostPath(int dep, int arv, T_vmark *Mk) {
 int x,y,w,*C;
-INF_succ *Ps,*Pn;
+T_succinf *Ps,*Pn;
 Mk->C = calloc(Graph.nn+1,sizeof(int));
 Mk->P = calloc(Graph.nn+1,sizeof(int));
 Mk->Q = calloc(Graph.nn+1,sizeof(int));
