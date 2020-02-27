@@ -74,7 +74,7 @@ Dictio = calloc(nwords+1,sizeof(char *));
 for (k=0; k<nwords; k++) {
     Dictio[k] = Bf;
     P = myScanf(P,"ds",&l,Bf);
-    Bf = endOfString(Bf,1);
+    Bf = CAS_endOfString(Bf,1);
     if (*P==0) break;
     }
 for (; k<nwords; k++) Dictio[k] = "zzzzzzz";
@@ -105,7 +105,7 @@ for (k=0,Pt=Lthr; k<nthrs; k++,Pt++)
 nrt = NREQS / nthrs;
 }
 
-long double getTime(SRV_conn *Conn) {
+long double CAS_getTime(CAS_srvconn_t *Conn) {
 struct timespec Tsp;
 clock_gettime(CLOCK_MONOTONIC_RAW,&Tsp);
 return Tsp.tv_sec + Tsp.tv_nsec / 1000000000.0;
@@ -161,11 +161,11 @@ double ti;
 PTHR_inf *Pt;
 readDictio();
 benchMarkConfig();
-ti = getTime(NULL);
+ti = CAS_getTime(NULL);
 for (Pt=Lthr; Pt->B; Pt++)
     pthread_create(&Pt->p,NULL,(void *(*)(void *))process,Pt);
 for (Pt=Lthr; Pt->B; Pt++) pthread_join(Pt->p,NULL);
-ti = getTime(NULL) - ti;
+ti = CAS_getTime(NULL) - ti;
 free(Dictio[0]);
 free(Dictio);
 fprintf(stderr,"Elapsed time: %.5lf seconds\n",ti);
