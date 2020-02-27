@@ -25,7 +25,7 @@ while (isspace(*Cfg)) Cfg++;
 /* Cfg points to the next information on this section */
 }
 
-static char *encodeBase64(SRV_conn *Conn, unsigned char *Bin, int lbi) {
+static char *encodeBase64(CAS_srvconn_t *Conn, unsigned char *Bin, int lbi) {
 int k,l,b,c;
 char *Out;
 l = (lbi * 4 + 2) / 3;
@@ -50,7 +50,7 @@ Conn->Pct = Out + l;
 return Out;
 }
 
-static char *decodeBase64(SRV_conn *Conn, char *Str) {
+static char *decodeBase64(CAS_srvconn_t *Conn, char *Str) {
 char *Out,*Dst,C[4];
 unsigned char d;
 int j;
@@ -86,45 +86,45 @@ while (Str) {
       d = Base64.D[C[3]];
       *Dst++ |= d;
       }
-Conn->Pct = endOfString(Out,1);
+Conn->Pct = CAS_endOfString(Out,1);
 return Out;
 }
 
-static void sendUnauthorized(SRV_conn *Conn) {
-resetOutputBuffer(Conn);
-nPrintf(Conn,Srvinfo.Rh[2]);
-nPrintf(Conn,"You must enter User name and Password");
+static void sendUnauthorized(CAS_srvconn_t *Conn) {
+CAS_resetOutputBuffer(Conn);
+CAS_nPrintf(Conn,CAS_Srvinfo.Rh[2]);
+CAS_nPrintf(Conn,"You must enter User name and Password");
 }
 
-static void processRequest(SRV_conn *Conn) {
+static void processRequest(CAS_srvconn_t *Conn) {
 char *Hau,*Pwd,*Str;
-Hau = getHeaderValue(Conn,"Authorization");
+Hau = CAS_getHeaderValue(Conn,"Authorization");
 if (Hau==NULL) {
    sendUnauthorized(Conn);
    return;
    }
-nPrintf(Conn,"Header value : %s<br>",Hau);
+CAS_nPrintf(Conn,"Header value : %s<br>",Hau);
 Str = decodeBase64(Conn,Hau);
 if (Str==NULL) {
-   nPrintf(Conn,"Header malformed or not enough temporary buffer space");
+   CAS_nPrintf(Conn,"Header malformed or not enough temporary buffer space");
    return;
    }
 if (Pwd=strchr(Str,':')) {
    *Pwd++ = 0;
    if (!strcasecmp(Auth.Usr,Str) && !strcmp(Auth.Pwd,Pwd))
-      nPrintf(Conn,"Ok, user name and password match");
+      CAS_nPrintf(Conn,"Ok, user name and password match");
    else
-      nPrintf(Conn,"User name or password don't match");
+      CAS_nPrintf(Conn,"User name or password don't match");
    }
 else
-   nPrintf(Conn,"Can't obtain user name and password from header value");
+   CAS_nPrintf(Conn,"Can't obtain user name and password from header value");
 }
 
-void registerUserSettings(void) {
+void CAS_registerUserSettings(void) {
 char *P;
 int k;
-Srvinfo.preq = processRequest;
-Srvinfo.cnfg = userConfig;
+CAS_Srvinfo.preq = processRequest;
+CAS_Srvinfo.cnfg = userConfig;
 memset(Base64.D,-1,sizeof(Base64.D));
 for (k=0,P=Base64.E; k<64; k++,P++) {
     if (k<26) *P = k + 'A';
