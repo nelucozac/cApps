@@ -5,10 +5,10 @@
 
 #include "cAppserver.h"
 
-static void processRequest(SRV_conn *Conn) {
-nPrintf(Conn,"Hello world!");
+static void processRequest(CAS_srvconn_t *Conn) {
+CAS_nPrintf(Conn,"Hello world!");
 }
 
-void registerUserSettings(void) {
-Srvinfo.preq = processRequest;
+void CAS_registerUserSettings(void) {
+CAS_Srvinfo.preq = processRequest;
 }
