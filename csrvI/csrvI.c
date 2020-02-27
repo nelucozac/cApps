@@ -3,11 +3,11 @@
  This is free software: you are free to change and redistribute it.
 */
 
-#include "Sapps.h"
+#include "cAppserver.h"
 #include <my_global.h>
 #include <mysql.h>
 
-typedef struct { char *W; MYSQL *M; } USR_info;
+typedef struct { char *W; MYSQL *M; } T_userinf;
 
 static struct { char *H, *D, *U, *P; } Myini;
 
@@ -32,20 +32,20 @@ Cfg = myGetString(Cfg,&Myini.U);
 myGetString(Cfg,&Myini.P);
 }
 
-static void errorFromMysql(SRV_conn *Conn, char *Msg, char *Sql) {
-USR_info *Prms;
+static void errorFromMysql(CAS_srvconn_t *Conn, char *Msg, char *Sql) {
+T_userinf *Prms;
 Prms = Conn->Usr;
 if (Msg) nPrintf(Conn,"Mysql %s failed: error %u (%s)\n%s\n",Msg,(unsigned)mysql_errno(Prms->M),mysql_error(Prms->M),Sql);
    else nPrintf(Conn,"Mysql init failed (probably out of memory)\n");
 }
 
 static void manageUserHtml(char op) {
-if (op=='L') Fhtm = loadTextFile("Dictio.htm");
+if (op=='L') Fhtm = CAS_loadTextFile("Dictio.htm");
    else free(Fhtm);
 }
 
-static MYSQL_RES *mysqlQueryResult(SRV_conn *Conn, char *Sql) {
-USR_info *Prms;
+static MYSQL_RES *mysqlQueryResult(CAS_srvconn_t *Conn, char *Sql) {
+T_userinf *Prms;
 MYSQL_RES *Res;
 Prms = Conn->Usr;
 if (mysql_query(Prms->M,Sql)==0) {
@@ -59,10 +59,10 @@ else {
 return Res;
 }
 
-static void displayHelp(SRV_conn *Conn) {
+static void displayHelp(CAS_srvconn_t *Conn) {
 static char *sqlF = "select distinct wrd from Dictio where wrd like '%s%%' order by 1 limit 10";
 char *sqlQ;
-USR_info *Prms;
+T_userinf *Prms;
 MYSQL_RES *Res;
 MYSQL_ROW Row;
 int l;
@@ -74,22 +74,22 @@ if (*Prms->W) do {
    Res = mysqlQueryResult(Conn,sqlQ);
    if (Res==NULL) break;
    while (Row=mysql_fetch_row(Res))
-         nPrintf(Conn,"%s\n",Row[0]);
+         CAS_nPrintf(Conn,"%s\n",Row[0]);
    mysql_free_result(Res);
    } while (0);
 free(sqlQ);
 }
 
-static void displayDefs(SRV_conn *Conn) {
+static void displayDefs(CAS_srvconn_t *Conn) {
 static char *sqlF = "select def from Dictio where wrd='%s'";
 char *Fmt,*sqlQ;
-USR_info *Prms;
+T_userinf *Prms;
 MYSQL_RES *Res;
 MYSQL_ROW Row;
 int l;
 Prms = Conn->Usr;
-nPrintf(Conn,Fhtm,Prms->W);
-Fmt = endOfString(Fhtm,1);
+CAS_nPrintf(Conn,Fhtm,Prms->W);
+Fmt = CAS_endOfString(Fhtm,1);
 if (*Prms->W) do {
    l = strlen(sqlF) + strlen(Prms->W) + 1;
    sqlQ = Conn->Pet - l;
@@ -97,12 +97,12 @@ if (*Prms->W) do {
    Res = mysqlQueryResult(Conn,sqlQ);
    if (Res==NULL) break;
    while (Row=mysql_fetch_row(Res))
-         nPrintf(Conn,Fmt,Prms->W,Row[0]);
+         CAS_nPrintf(Conn,Fmt,Prms->W,Row[0]);
    mysql_free_result(Res);
    } while (0);
 free(sqlQ);
-Fmt = endOfString(Fmt,1);
-nPrintf(Conn,Fmt,getTime(NULL)-Conn->tim);
+Fmt = CAS_endOfString(Fmt,1);
+CAS_nPrintf(Conn,Fmt,getTime(NULL)-Conn->tim);
 }
 
 static void strCopy(char *Ds, char *So, int ls) {
@@ -116,8 +116,8 @@ while (c=*So++) if (isalpha(c)) {
 *Ds = 0;
 }
 
-static void processRequest(SRV_conn *Conn) {
-USR_info Prms;
+static void processRequest(CAS_srvconn_t *Conn) {
+T_userinf Prms;
 char *P;
 int l;
 Conn->Usr = &Prms;
@@ -130,20 +130,20 @@ if (mysql_real_connect(Prms.M,Myini.H,Myini.U,Myini.P,Myini.D,0,NULL,0)==NULL) {
    errorFromMysql(Conn,"connect","");
    return;
    }
-P = getLastParamValue(Conn,"W");
+P = CAS_getLastParamValue(Conn,"W");
 l = strlen(P) + 1;
 if (l>256) l = 256;
 Prms.W = Conn->Pet - l - 2;
 strCopy(Prms.W,P,l-1);
 Conn->Pet -= l;
-P = getLastParamValue(Conn,"O");
+P = CAS_getLastParamValue(Conn,"O");
 if (*P=='H') displayHelp(Conn);
    else displayDefs(Conn);
 mysql_close(Prms.M);
 }
 
-void registerUserSettings(void) {
-Srvinfo.cnfg = userConfig;
-Srvinfo.preq = processRequest;
-Srvinfo.html = manageUserHtml;
+void CAS_registerUserSettings(void) {
+CAS_Srvinfo.cnfg = userConfig;
+CAS_Srvinfo.preq = processRequest;
+CAS_Srvinfo.html = manageUserHtml;
 }
