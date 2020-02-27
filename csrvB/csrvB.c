@@ -5,7 +5,7 @@
 
 #include "cAppserver.h"
 
-static void processRequest(SRV_conn *Conn) {
+static void processRequest(CAS_srvconn_t *Conn) {
 char *Meth,*Sec,*Pnam,*Pval,Ip[INET6_ADDRSTRLEN];
 struct tm Tim;
 switch (Conn->Bfi[0]) {
@@ -14,28 +14,27 @@ switch (Conn->Bfi[0]) {
        case 'U': Meth = "PUT"; break;
        }
 Sec = Conn->Bfi[1] ? "secure" : "not secure";
-nPrintf(Conn,"Method: %s, %s<br>",Meth,Sec);
-nPrintf(Conn,"Unix time stamp (server): %D<br>\n",(long long)Conn->uts);
-nPrintf(Conn,"Current date (yyyy/mm/dd) and time (hh:mm:ss) is: ");
+CAS_nPrintf(Conn,"Method: %s, %s<br>",Meth,Sec);
+CAS_nPrintf(Conn,"Unix time stamp (server): %D<br>\n",(long long)Conn->uts);
+CAS_nPrintf(Conn,"Current date (yyyy/mm/dd) and time (hh:mm:ss) is: ");
 localtime_r(&Conn->uts,&Tim);
-nPrintf(Conn,"%d/%02d/%02d %02d:%02d:%02d<br><br>\n",
-        Tim.tm_year,Tim.tm_mon,Tim.tm_mday,
-        Tim.tm_hour,Tim.tm_min,Tim.tm_sec);
-inet_ntop(Srvinfo.af,Conn->Ipc,Ip,sizeof(Ip));
-nPrintf(Conn,"Ip address of client: %s<br>\nParameters<br>\n",Ip);
-for (Pnam=NULL; Pnam=getParamName(Conn,Pnam); )
-    for (Pval=NULL; Pval=getParamValue(Conn,Pnam,Pval); )
-        nPrintf(Conn,"%s = %s<br>\n",Pnam,Pval);
+CAS_nPrintf(Conn,"%d/%02d/%02d %02d:%02d:%02d<br><br>\n",Tim.tm_year,Tim.tm_mon,
+            Tim.tm_mday,Tim.tm_hour,Tim.tm_min,Tim.tm_sec);
+inet_ntop(CAS_Srvinfo.af,Conn->Ipc,Ip,sizeof(Ip));
+CAS_nPrintf(Conn,"Ip address of client: %s<br>\nParameters<br>\n",Ip);
+for (Pnam=NULL; Pnam=CAS_getParamName(Conn,Pnam); )
+    for (Pval=NULL; Pval=CAS_getParamValue(Conn,Pnam,Pval); )
+        CAS_nPrintf(Conn,"%s = %s<br>\n",Pnam,Pval);
 Pnam = "a";
-nPrintf(Conn,"<br>Last value of %s = %s",Pnam,getLastParamValue(Conn,Pnam));
-nPrintf(Conn,"\n<br><br>Headers<br>");
-for (Pnam=NULL; Pnam=getHeaderName(Conn,Pnam); )
-    nPrintf(Conn,"%s : %s<br>\n",Pnam,getHeaderValue(Conn,Pnam));
+CAS_nPrintf(Conn,"<br>Last value of %s = %s",Pnam,CAS_getLastParamValue(Conn,Pnam));
+CAS_nPrintf(Conn,"\n<br><br>Headers<br>");
+for (Pnam=NULL; Pnam=CAS_getHeaderName(Conn,Pnam); )
+    CAS_nPrintf(Conn,"%s : %s<br>\n",Pnam,CAS_getHeaderValue(Conn,Pnam));
 Pnam = "uSer-aGent";
-nPrintf(Conn,"<br>%s : %s<br><br>\n",Pnam,getHeaderValue(Conn,Pnam));
-nPrintf(Conn,"Elapsed time : %.3e\n",getTime(NULL)-Conn->tim);
+CAS_nPrintf(Conn,"<br>%s : %s<br><br>\n",Pnam,CAS_getHeaderValue(Conn,Pnam));
+CAS_nPrintf(Conn,"Elapsed time : %.3e\n",CAS_getTime(NULL)-Conn->tim);
 }
 
-void registerUserSettings(void) {
-Srvinfo.preq = processRequest;
+void CAS_registerUserSettings(void) {
+CAS_Srvinfo.preq = processRequest;
 }
