@@ -1,6 +1,7 @@
 /*
  License GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
  This is free software: you are free to change and redistribute it.
+ Create random graph and update the server
 */
 
 #include "cAppserver.h"
@@ -129,7 +130,7 @@ rename(Tlnk,"Graph.lnk");
 static char *Mssg;
 static int contactServer(char *Ncfg) {
 int Fc,p,v,fs,t;
-char Pswd[2044],Ipa[48],*P;
+char Pswd[2004],Ipa[48],*P;
 time_t ti;
 union { struct sockaddr_in v4; struct sockaddr_in6 v6; } Sadr;
 Fc = open(Ncfg,O_RDONLY);
