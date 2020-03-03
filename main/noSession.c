@@ -7,6 +7,6 @@
 
 #include "cAppserver.h"
 
-void initSessionSupport(char *Sfn) { }
-//
-void updateSession(SRV_conn *Conn) { }
+void CAS_initSessionSupport(char *Sfn) { }
+
+void CAS_updateSession(SRV_conn *Conn) { }
