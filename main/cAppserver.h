@@ -54,7 +54,7 @@
 #include <openssl/err.h>
 #endif
 
-#define endOfString(S, k) ((S) + (strlen(S) + (k)))
+#define CAS_endOfString(S, k) ((S) + (strlen(S) + (k)))
 
 typedef struct {
         unsigned char Ipc[16];
@@ -65,7 +65,7 @@ typedef struct {
         char Ufn[4];
         volatile char tmo;
         void *Usr, *Ssn;
-        } SRV_conn;
+        } CAS_srvconn_t;
 
 typedef struct {
         int af;
@@ -73,44 +73,42 @@ typedef struct {
         char *Nv;
         int ss, se, fs;
         void (*data)(char), (*html)(char);
-        void (*cnfg)(char *), (*preq)(SRV_conn *), (*rwrl)(SRV_conn *);
-        int (*acco)(unsigned char *), (*post)(SRV_conn *, int, int);
-        } SRV_info;
-extern SRV_info Srvinfo;
+        void (*cnfg)(char *), (*preq)(CAS_srvconn_t *), (*rwrl)(CAS_srvconn_t *);
+        int (*acco)(unsigned char *), (*post)(CAS_srvconn_t *, int, int);
+        } CAS_srvinfo_t;
+extern CAS_srvinfo_t CAS_Srvinfo;
 
-long double getTime(SRV_conn *Conn);
+long double CAS_getTime(CAS_srvconn_t *Conn);
 
-int explodeHtm(char *Htmi, void *Htmo, int siz),
-    serverMutex(SRV_conn *Conn, int *Mtx, char op);
+int CAS_explodeHtm(char *Htmi, void *Htmo, int siz),
+    CAS_serverMutex(CAS_srvconn_t *Conn, int *Mtx, char op);
 
-char *getParamName(SRV_conn *Conn, char *From),
-     *getParamValue(SRV_conn *Conn, char *Name, char *From),
-     *getLastParamValue(SRV_conn *Conn, char *Name),
-     *getHeaderName(SRV_conn *Conn, char *From),
-     *getHeaderValue(SRV_conn *Conn, char *Name),
-     *convertString(SRV_conn *Conn, char *Str, char mod),
-     *cPrintf(SRV_conn *Conn, char *Fmt, ...),
-     *loadTextFile(char *Nft),
-     *buildMimeTypeList(char *Cfg);
+char *CAS_getParamName(CAS_srvconn_t *Conn, char *From),
+     *CAS_getParamValue(CAS_srvconn_t *Conn, char *Name, char *From),
+     *CAS_getLastParamValue(CAS_srvconn_t *Conn, char *Name),
+     *CAS_getHeaderName(CAS_srvconn_t *Conn, char *From),
+     *CAS_getHeaderValue(CAS_srvconn_t *Conn, char *Name),
+     *CAS_convertString(CAS_srvconn_t *Conn, char *Str, char mod),
+     *CAS_sPrintf(CAS_srvconn_t *Conn, char *Fmt, ...),
+     *CAS_loadTextFile(char *Nft),
+     *CAS_buildMimeTypeList(char *Cfg);
 
-#define getThisParamValue(Conn, Pnam) (Pnam + strlen(Pnam) + 1)
+#define CAS_getThisParamValue(Conn, Pnam) (Pnam + strlen(Pnam) + 1)
 
-void sendContentToClient(SRV_conn *Conn, char *Nft, char *Rhf, void *Buf, int siz),
-     sendFileToClient(SRV_conn *Conn, char *Nft, char *Rhf, int (*valid)(char *)),
-     nPrintf(SRV_conn *Conn, char *Fmt, ...),
-     resetOutputBuffer(SRV_conn *Conn),
-     registerUserSettings(void);
+void CAS_sendContentToClient(CAS_srvconn_t *Conn, char *Nft, char *Rhf, void *Buf, int siz),
+     CAS_sendFileToClient(CAS_srvconn_t *Conn, char *Nft, char *Rhf, int (*valid)(char *)),
+     CAS_nPrintf(CAS_srvconn_t *Conn, char *Fmt, ...),
+     CAS_resetOutputBuffer(CAS_srvconn_t *Conn),
+     CAS_registerUserSettings(void);
 
-void createSession(SRV_conn *Conn),
-     checkSession(SRV_conn *Conn, char *Sid),
-     updateSession(SRV_conn *Conn),
-     deleteSession(SRV_conn *Conn);
-
-SRV_conn *allocSessionSpace(void);
+void CAS_createSession(CAS_srvconn_t *Conn),
+     CAS_checkSession(CAS_srvconn_t *Conn, char *Sid),
+     CAS_deleteSession(CAS_srvconn_t *Conn);
 
 /* The following functions are for internal use */
-void convertBinaryToName(char *Nam, int np, unsigned long long val),
-     initSessionSupport(char *Sfn);
+void CAS_convertBinaryToName(char *Nam, int np, unsigned long long val),
+     CAS_initSessionSupport(char *Sfn),
+     CAS_updateSession(CAS_srvconn_t *Conn);
 /* and should not be called by developers */
 
 #endif
