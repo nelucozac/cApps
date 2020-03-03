@@ -3,7 +3,7 @@
  This is free software: you are free to change and redistribute it.
  Determines how the stack is growing: downward or upward.
 */
-
+//
 #include <stdio.h>
 
 static int stackDirection(double *A) {
