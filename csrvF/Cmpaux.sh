@@ -4,3 +4,4 @@ strip Credic
 gcc -O3 -I../main/ Bmark.c -o bmDictio -lpthread
 chmod 700 Bmark
 strip Bmark
+;
