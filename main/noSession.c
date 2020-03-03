@@ -8,5 +8,5 @@
 #include "cAppserver.h"
 
 void initSessionSupport(char *Sfn) { }
-
+//
 void updateSession(SRV_conn *Conn) { }
