@@ -61,7 +61,7 @@ rename(Ti,"Dictio.idx");
 static char *Mssg;
 static int contactServer(char *Ncfg) {
 int Fc,p,v,fs,t;
-char Pswd[2044],Ipa[48],*P;
+char Pswd[2004],Ipa[48],*P;
 time_t ti;
 union { struct sockaddr_in v4; struct sockaddr_in6 v6; } Sadr;
 Fc = open(Ncfg,O_RDONLY);
