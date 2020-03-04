@@ -35,8 +35,8 @@ myGetString(Cfg,&Myini.P);
 static void errorFromMysql(CAS_srvconn_t *Conn, char *Msg, char *Sql) {
 T_userinf *Prms;
 Prms = Conn->Usr;
-if (Msg) nPrintf(Conn,"Mysql %s failed: error %u (%s)\n%s\n",Msg,(unsigned)mysql_errno(Prms->M),mysql_error(Prms->M),Sql);
-   else nPrintf(Conn,"Mysql init failed (probably out of memory)\n");
+if (Msg) CAS_nPrintf(Conn,"Mysql %s failed: error %u (%s)\n%s\n",Msg,(unsigned)mysql_errno(Prms->M),mysql_error(Prms->M),Sql);
+   else CAS_nPrintf(Conn,"Mysql init failed (probably out of memory)\n");
 }
 
 static void manageUserHtml(char op) {
@@ -77,7 +77,6 @@ if (*Prms->W) do {
          CAS_nPrintf(Conn,"%s\n",Row[0]);
    mysql_free_result(Res);
    } while (0);
-free(sqlQ);
 }
 
 static void displayDefs(CAS_srvconn_t *Conn) {
@@ -100,9 +99,8 @@ if (*Prms->W) do {
          CAS_nPrintf(Conn,Fmt,Prms->W,Row[0]);
    mysql_free_result(Res);
    } while (0);
-free(sqlQ);
 Fmt = CAS_endOfString(Fmt,1);
-CAS_nPrintf(Conn,Fmt,getTime(NULL)-Conn->tim);
+CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
 }
 
 static void strCopy(char *Ds, char *So, int ls) {
