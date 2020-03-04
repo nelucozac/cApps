@@ -11,7 +11,7 @@ struct tm Tim;
 switch (Conn->Bfi[0]) {
        case 'G': Meth = "GET"; break;
        case 'P': Meth = "POST"; break;
-       case 'U': Meth = "PUT"; break;
+       case 'L': Meth = "LOAD"; break;
        }
 Sec = Conn->Bfi[1] ? "secure" : "not secure";
 CAS_nPrintf(Conn,"Method: %s, %s<br>",Meth,Sec);
