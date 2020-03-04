@@ -102,7 +102,7 @@ void CAS_sendContentToClient(CAS_srvconn_t *Conn, char *Nft, char *Rhf, void *Bu
      CAS_registerUserSettings(void);
 
 void CAS_createSession(CAS_srvconn_t *Conn),
-     CAS_checkSession(CAS_srvconn_t *Conn, char *Sid),
+     CAS_checkSession(CAS_srvconn_t *Conn, char *Sva),
      CAS_deleteSession(CAS_srvconn_t *Conn);
 
 /* The following functions are for internal use */
