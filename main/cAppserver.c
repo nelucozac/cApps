@@ -898,6 +898,10 @@ if (clock_gettime(CLOCK_MONOTONIC_COARSE,&Othinf.Rtm)<0) {
    errorMessage(Ecf,errno);
    exit(1);
    }
+if (CAS_Srvinfo.se>0) {
+   s = Srvcfg.Tpro.it_value.tv_sec * 2 + 1;
+   if (CAS_Srvinfo.se<s) CAS_Srvinfo.se = s;
+   }
 #ifdef _Secure_application_server
 Secinf.Ctx = SSL_CTX_new(Secinf.Mtd);
 if (Secinf.Mtx==NULL) {
