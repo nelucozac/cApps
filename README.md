@@ -1,6 +1,6 @@
 ## Framework for developing C application servers (cApps) ##
 
-*(only for Linux)*
+(*only for Linux*)
 
 This online distribution includes:
 - main directory, the following files: cAppserver.c, cAppserver.h, cAppserver.cfg, Stack.c;
