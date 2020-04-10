@@ -9,7 +9,7 @@ This online distribution includes:
 
 ### **cApps-get.pdf** documentation ###
 
-The examples cover a lot of problems which can be solved using this framework:
+The examples from csrvA to csrvJ cover a lot of problems which can be solved using this framework:
 - obtain GET parameters (URL) and header messages;
 - send files to client / browser;
 - generate tables with variable number of rows and / or columns;
