@@ -7,6 +7,8 @@ This online distribution includes:
 - csrvA to csrvJ directories: examples about how to develop your own C application server;
 - and cApps-get.pdf documentation, which details every example from csrvA to csrvJ.
 
+### **cApps-get.pdf** documentation ###
+
 The examples cover a lot of problems which can be solved using this framework:
 - obtain GET parameters (URL) and header messages;
 - send files to client / browser;
