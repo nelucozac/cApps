@@ -71,7 +71,7 @@ typedef struct {
         int af;
         char **Rh;
         char *Nv;
-        int ss, se, fs;
+        int ss, fs, se, ns;
         void (*data)(char), (*html)(char);
         void (*cnfg)(char *), (*preq)(CAS_srvconn_t *), (*rwrl)(CAS_srvconn_t *);
         int (*acco)(unsigned char *), (*post)(CAS_srvconn_t *, int, int);
@@ -103,12 +103,11 @@ void CAS_sendContentToClient(CAS_srvconn_t *Conn, char *Nft, char *Rhf, void *Bu
 
 void CAS_createSession(CAS_srvconn_t *Conn),
      CAS_checkSession(CAS_srvconn_t *Conn, char *Sva),
-     CAS_deleteSession(CAS_srvconn_t *Conn);
+     CAS_deleteSession(CAS_srvconn_t *Conn, char *Sva);
 
-/* The following functions are for internal use */
+/* The following functions have been designed for internal use */
 void CAS_convertBinaryToName(char *Nam, int np, unsigned long long val),
-     CAS_initSessionSupport(char *Sfn),
-     CAS_updateSession(CAS_srvconn_t *Conn);
-/* and should not be called by developers */
+     CAS_updateSession(CAS_srvconn_t *Conn),
+     CAS_initSessionSupport(char *Sfn);
 
 #endif
