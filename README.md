@@ -1,4 +1,4 @@
-## Framework for developing C application servers (cApps) ##
+## Framework: developing C application servers (cApps) ##
 
 (*only for Linux*)
 
