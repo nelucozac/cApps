@@ -31,10 +31,10 @@ C source files, compile scripts, configuration files, data files (if necessary) 
 *At this time, only GET requests are used by these examples.*
 *POST requests and sessions are not yet documented.*
 
-*However, you can use POST requests, see Appendix G (from cApps-get.pdf document) for details.*
+*However, you can use POST requests, see Appendix G* (*from cApps-get.pdf document*) *for details.*
 
 *Coming soon:*
 - *details about how to manage POST requests;*
 - *session support;*
-- *LOAD (ad-hoc created) method to upload files to server;*
+- *LOAD* (*ad-hoc created*) *method to upload files to server;*
 - *https support.*
