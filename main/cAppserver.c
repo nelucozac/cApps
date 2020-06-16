@@ -116,7 +116,7 @@ static int recvFromClient(T_cloninfo *Clon, void *Buf, int len) {
 #ifdef _Secure_application_server
 int k;
 k = SSL_read(Clon->Ss,Buf,len);
-/* if k == 0 repeat ? */
+/* if (k==0) k = SSL_read(Clon->Ss,Buf,len); */
 return k;
 #else
 return recv(Clon->sk,Buf,len,0);
@@ -136,7 +136,7 @@ if (ls>0) {
       #ifdef _Secure_application_server
       if (Clon->Ss) {
          s = SSL_write(Clon->Ss,Bf,ls);
-         /* if s == 0 repeat ? */
+         /* if (s==0) s = SSL_write(Clon->Ss,Bf,ls); */
          }
       else s = send(Clon->sk,Bf,ls,0);
       #else
@@ -1062,23 +1062,11 @@ do {
 return NULL;
 }
 
-static struct { char *Eol, *Prj, *Mcl, *Clb, *Rto, *Mhd, *Ctn, *Zzz, *Clv; } Textp = {
-       "\r\n", "Post / Load rejected", "Missing Content-length",
-       "Content-length too big (%d)", "Post / Load timeout",
+static struct { char *Eol, *Pna, *Mcl, *Clb, *Prj, *Mhd, *Ctn, *Zzz, *Clv; } Textp = {
+       "\r\n", "Post / Load not allowed", "Missing Content-length",
+       "Content-length too big (%d)", "Post / Load rejected",
        "Missing end of headers", "Content-type not allowed",
        NULL, "Content-length" } ;
-
-static char *postError(CAS_srvconn_t *Conn, int k) {
-static char **Perr = (char **)&Textp;
-char *P;
-k = -k;
-if (k>6) return CAS_sPrintf(Conn,"%d octets read",k);
-if (k==3) {
-   P = CAS_getHeaderValue(Conn,Textp.Clv);
-   return CAS_sPrintf(Conn,Textp.Clb,atoi(P));
-   }
-return Perr[k];
-}
 
 static char *parseGetParams(T_cloninfo *Clon, char *Pm) {
 char *Ds,W[3],c;
@@ -1227,7 +1215,7 @@ parseHeaderMessages(Clon,Pr);
 c = contentLength(&Clon->Co,CAS_Srvinfo.fs);
 if (c<0) return c;
 if (CAS_Srvinfo.post) if (CAS_Srvinfo.post(&Clon->Co,c,s)==0)
-   return -1;
+   return -4;
 Pr = Clon->Co.Ufn;
 CAS_convertBinaryToName(Pr,3,Clon-Lstclon.Cl);
 F = open(Pr,O_WRONLY|O_CREAT|O_TRUNC,0600);
@@ -1238,7 +1226,7 @@ m = Clon->Co.Pet - Pp;
 while (s<c) {
       if (l<Srvcfg.norp) {
          close(F);
-         if (l<=0) return -4;
+         if (l<=0) return 0;
          return l > 6 ? -l : -7;
          }
       l = c - s;
@@ -1277,7 +1265,7 @@ c = contentLength(&Clon->Co,l);
 if (c<0) return c;
 if (CAS_Srvinfo.post) if (c>m)
    if (CAS_Srvinfo.post(&Clon->Co,c,m)==0)
-      return -1;
+      return -4;
 if (Pr=CAS_getHeaderValue(&Clon->Co,"Content-type"))
    if (strcasecmp(Pr,"application/x-www-form-urlencoded")!=0)
       return -6;
@@ -1286,7 +1274,7 @@ Pr = Pp;
 l = Srvcfg.norp;
 while (s<c) {
       if (l<Srvcfg.norp) {
-         if (l<=0) return -4;
+         if (l<=0) return 0;
          return l > 6 ? -l : -7;
          }
       l = c - s;
@@ -1313,6 +1301,7 @@ return Er;
 #endif
 
 static int receiveRequest(T_cloninfo *Clon) {
+static char **Perr = (char **)&Textp;
 int k;
 char *Bi,*Me;
 int (*PostOrLoad)(T_cloninfo *, int);
@@ -1364,7 +1353,21 @@ if (memcmp(Bi,"LOAD /",6)==0)
 if (PostOrLoad) {
    k = PostOrLoad(Clon,k);
    if (k>0) return k;
-   abortConnection(&Clon->Co,postError(&Clon->Co,k));
+   if (k<0) {
+      k = -k;
+      if (k<=6) {
+         if (k==3) {
+            Bi = CAS_getHeaderValue(&Clon->Co,Textp.Clv);
+            Me = CAS_sPrintf(&Clon->Co,Textp.Clb,atoi(Bi));
+            }
+         else {
+            Perr = (char **)&Textp;
+            Me = Perr[k];
+            }
+         }
+      else Me = CAS_sPrintf(&Clon->Co,"%d octets read",k);
+      }
+   abortConnection(&Clon->Co,Me);
    return 0;
    }
 return 404;
