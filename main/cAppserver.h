@@ -71,7 +71,7 @@ typedef struct {
         int af;
         char **Rh;
         char *Nv;
-        int ss, fs, se, ns;
+        int fs, ss, se, ns;
         void (*data)(char), (*html)(char);
         void (*cnfg)(char *), (*preq)(CAS_srvconn_t *), (*rwrl)(CAS_srvconn_t *);
         int (*acco)(unsigned char *), (*post)(CAS_srvconn_t *, int, int);
