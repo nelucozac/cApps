@@ -18,7 +18,7 @@ CAS_nPrintf(Conn,"Method: %s, %s<br>",Meth,Sec);
 CAS_nPrintf(Conn,"Unix time stamp (server): %D<br>\n",(long long)Conn->uts);
 CAS_nPrintf(Conn,"Current date (yyyy/mm/dd) and time (hh:mm:ss) is: ");
 localtime_r(&Conn->uts,&Tim);
-CAS_nPrintf(Conn,"%d/%02d/%02d %02d:%02d:%02d<br><br>\n",Tim.tm_year,Tim.tm_mon,
+CAS_nPrintf(Conn,"%d/%02d/%02d %02d:%02d:%02d<br><br>\n",Tim.tm_year+1900,Tim.tm_mon,
             Tim.tm_mday,Tim.tm_hour,Tim.tm_min,Tim.tm_sec);
 inet_ntop(CAS_Srvinfo.af,Conn->Ipc,Ip,sizeof(Ip));
 CAS_nPrintf(Conn,"Ip address of client: %s<br>\nParameters<br>\n",Ip);
