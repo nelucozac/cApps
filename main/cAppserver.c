@@ -19,7 +19,7 @@ typedef struct {
         #ifdef _Secure_application_server
         SSL *Ss;
         #endif
-        char *Bf, *Pm, *Hm, *Po, rq;
+        char *Bf, *Pm, *Hm, *Po, *Ei, rq;
         } T_cloninfo;
 
 CAS_srvinfo_t CAS_Srvinfo;
@@ -249,15 +249,18 @@ else CAS_nPrintf(Conn,"%%",CAS_Srvinfo.Rh[1],strerror(EACCES));
 
 static void abortConnection(CAS_srvconn_t *Conn, char *Ms) {
 struct tm Tim;
+char *Bo;
 int r;
 inet_ntop(CAS_Srvinfo.af,Conn->Ipc,Conn->Pct,INET6_ADDRSTRLEN);
 ((T_cloninfo *)Conn)->Po = Conn->Bfo;
 localtime_r(&Conn->uts,&Tim);
+CAS_nPrintf(Conn,CAS_Srvinfo.Rh[1]);
+Bo = ((T_cloninfo *)Conn)->Po;
 CAS_nPrintf(Conn,"%d/%02d/%02d %d:%02d %s from %s\n",Tim.tm_year+1900,Tim.tm_mon+1,Tim.tm_mday,Tim.tm_hour,Tim.tm_min,Ms,Conn->Pct);
 #ifdef _Release_application_server
-r = write(Othinf.err,Conn->Bfo,strlen(Conn->Bfo));
+r = write(Othinf.err,Bo,strlen(Bo));
 #else
-fputs(Conn->Bfo,stderr);
+fputs(Bo,stderr);
 #endif
 }
 
@@ -676,8 +679,8 @@ long double CAS_getTime(CAS_srvconn_t *Conn) {
 struct timeval Tmv;
 long double dt;
 gettimeofday(&Tmv,NULL);
-dt = ((long double)Tmv.tv_sec - Othinf.Rtm.tv_sec) + ((long double)Tmv.tv_usec - Othinf.Rtm.tv_usec)
-     / 1000000.0;
+dt = ((long double)Tmv.tv_usec - Othinf.Rtm.tv_usec) / 1000000.0 +
+     ((long double)Tmv.tv_sec - Othinf.Rtm.tv_sec);
 if (Conn) if (Conn->uts==0)
    Conn->uts = Tmv.tv_sec;
 return dt;
@@ -913,6 +916,8 @@ Ps = scanConfig(Ps,"dd",&Srvcfg.port,NULL);
 #endif
 Ps = scanConfig(Ps,"dtddddtdddd",&n,&Srvcfg.Tpro.it_value.tv_sec,&s,&Srvcfg.sBfi,&Srvcfg.sBfo,&Srvcfg.sBft,
                 &Srvcfg.Trcv.tv_sec,&Srvcfg.norp,&CAS_Srvinfo.fs,&CAS_Srvinfo.se,&CAS_Srvinfo.ns);
+if (CAS_Srvinfo.fs>0)
+   CAS_Srvinfo.fs = (CAS_Srvinfo.fs + 1023) & ~1023;
 Srvcfg.Tpro.it_interval.tv_sec = 1;
 if (Lstclon.nc==0) {
    #ifdef _Secure_application_server
@@ -922,7 +927,7 @@ if (Lstclon.nc==0) {
    n = 1;
    #endif
    Lstclon.nc = n;
-   Srvcfg.stks = ((s + 1023) & 0xffffc00) / sizeof(int);
+   Srvcfg.stks = ((s + 1023) & ~1023) / sizeof(int);
    Lstclon.Cl = calloc(n+1,sizeof(T_cloninfo));
    if (Lstclon.Cl==NULL) errorMessage(Ecf,errno);
    for (s=0,Clon=Lstclon.Cl; s<n; s++,Clon++) {
@@ -930,14 +935,14 @@ if (Lstclon.nc==0) {
        if (Clon->Sb==NULL) errorMessage(Ecf,errno);
        }
    }
-Srvcfg.sBfi = (Srvcfg.sBfi + 1023) & 0xffffc00;
+Srvcfg.sBfi = (Srvcfg.sBfi + 1023) & ~1023;
 if (Srvcfg.norp>0) {
-   Srvcfg.norp = (Srvcfg.norp + 1023) & 0xffffc00;
+   Srvcfg.norp = (Srvcfg.norp + 1023) & ~1023;
    if (Srvcfg.norp>=Srvcfg.sBfi) Srvcfg.sBfi = Srvcfg.norp + 1024;
    }
 if (CAS_Srvinfo.ss>0) Srvcfg.sBft += CAS_Srvinfo.ss + 40;
-Srvcfg.sBfo = (Srvcfg.sBfo + 1023) & 0xffffc00;
-Srvcfg.sBft = (Srvcfg.sBft + 1023) & 0xffffc00;
+Srvcfg.sBfo = (Srvcfg.sBfo + 1023) & ~1023;
+Srvcfg.sBft = (Srvcfg.sBft + 1023) & ~1023;
 Srvcfg.lbf = Srvcfg.sBfi + Srvcfg.sBfo + Srvcfg.sBft;
 if (Lstclon.nc>0) {
    n = 0;
@@ -1062,10 +1067,10 @@ do {
 return NULL;
 }
 
-static struct { char *Eol, *Pna, *Mcl, *Clb, *Prj, *Mhd, *Ctn, *Zzz, *Clv; } Textp = {
-       "\r\n", "Post / Load not allowed", "Missing Content-length",
-       "Content-length too big (%d)", "Post / Load rejected",
-       "Missing end of headers", "Content-type not allowed",
+static struct { char *Eol, *Mna, *Mcl, *Clb, *Mrj, *Mhd, *Ctn, *Zzz, *Clv; } Textp = {
+       "\r\n", "%s method not allowed", "%s Missing Content-length",
+       "%s Content-length too big (%u)", "%s method rejected",
+       "%s Missing end of headers", "%s Content-type not allowed",
        NULL, "Content-length" } ;
 
 static char *parseGetParams(T_cloninfo *Clon, char *Pm) {
@@ -1102,6 +1107,7 @@ do {
 *Ds++ = 0;
 s = Ds - Clon->Bf;
 if (Clon->mi<s) Clon->mi = s;
+if (Ds>Clon->Ei) Clon->Ei = Ds;
 return Ds;
 }
 
@@ -1135,6 +1141,7 @@ while (Hm) {
 *Ds++ = 0;
 k = Ds - Clon->Bf;
 if (Clon->mi<k) Clon->mi = k;
+if (Ds>Clon->Ei) Clon->Ei = Ds;
 return Ds;
 }
 
@@ -1151,7 +1158,6 @@ else Bi++;
 if (Hm=strpbrk(Bi,Textp.Eol)) *Hm++ = 0;
 Clon->Hm = parseGetParams(Clon,Bi);
 if (Hm) parseHeaderMessages(Clon,Hm);
-memset(Clon->Co.Bfo-2,0,Srvcfg.sBfo+Srvcfg.sBft+2);
 return 200;
 }
 
@@ -1200,7 +1206,7 @@ char *Bi,*Pp,*Pr;
 int F,c,s,m,w;
 if (CAS_Srvinfo.fs==0) return -1;
 Bi = Clon->Bf;
-if (Bi[5]!='?') return 404;
+if (Bi[6]!='?') return 404;
 Pp = searchBody(Bi,&c);
 if (c<0) return c;
 s = l - (Pp - Bi);
@@ -1208,7 +1214,7 @@ for (Pr=Pp-1; isspace(*Pr); Pr--) ;
 Pr[1] = Pr[2] = 0;
 Pr = strpbrk(Bi,Textp.Eol);
 Bi[1] = Bi[2] = 0;
-Bi += 6;
+Bi += 7;
 Clon->Hm = parseGetParams(Clon,Bi);
 if (Clon->Pm[0]==0) return 404;
 parseHeaderMessages(Clon,Pr);
@@ -1236,7 +1242,6 @@ while (s<c) {
       s += l;
       }
 close(F);
-memset(Pr-2,0,Srvcfg.sBfo+Srvcfg.sBft+2);
 return 200;
 }
 
@@ -1284,8 +1289,6 @@ while (s<c) {
       }
 Pp[s] = Pp[s+1] = 0;
 if (Pr) Pr = parseGetParams(Clon,Pp);
-if (Pr>=Clon->Co.Bfo) return -3;
-memset(Pr-2,0,Srvcfg.sBfo+Srvcfg.sBft+2);
 return 200;
 }
 
@@ -1306,7 +1309,7 @@ int k;
 char *Bi,*Me;
 int (*PostOrLoad)(T_cloninfo *, int);
 Clon->Co.tim = CAS_getTime(&Clon->Co);
-Clon->Co.Bfi = Bi = Clon->Bf;
+Clon->Co.Bfi = Clon->Ei = Bi = Clon->Bf;
 memset(Bi,0,Srvcfg.lbf);
 Clon->Co.Bfo = Clon->Po = Bi + Srvcfg.sBfi;
 Clon->Co.Bft = Clon->Co.Bfo + Srvcfg.sBfo;
@@ -1337,7 +1340,7 @@ setsockopt(Clon->sk,SOL_TCP,TCP_NODELAY,&k,sizeof(k));
 k = recvFromClient(Clon,Clon->Bf,Srvcfg.lbf-4);
 Me = "Request timeout";
 #ifdef _Secure_application_server
-Me = secureError(Clon,"Read");
+if (Bi[0]==0) Me = secureError(Clon,"Read");
 #endif
 if (Bi[0]==0) {
    abortConnection(&Clon->Co,Me);
@@ -1345,32 +1348,34 @@ if (Bi[0]==0) {
    }
 if (memcmp(Bi,"GET /",5)==0)
    return isGetMethod(Clon);
-PostOrLoad = NULL;
-if (memcmp(Bi,"POST /",6)==0)
-   PostOrLoad = isPostMethod;
-if (memcmp(Bi,"LOAD /",6)==0)
-   PostOrLoad = isLoadMethod;
-if (PostOrLoad) {
-   k = PostOrLoad(Clon,k);
-   if (k>0) return k;
-   if (k<0) {
-      k = -k;
-      if (k<=6) {
-         if (k==3) {
-            Bi = CAS_getHeaderValue(&Clon->Co,Textp.Clv);
-            Me = CAS_sPrintf(&Clon->Co,Textp.Clb,atoi(Bi));
-            }
-         else {
-            Perr = (char **)&Textp;
-            Me = Perr[k];
-            }
-         }
-      else Me = CAS_sPrintf(&Clon->Co,"%d octets read",k);
+do {
+   if (memcmp(Bi,"POST /",6)==0) {
+      PostOrLoad = isPostMethod;
+      break;
       }
-   abortConnection(&Clon->Co,Me);
-   return 0;
+   if (memcmp(Bi,"LOAD /",6)==0) {
+      PostOrLoad = isLoadMethod;
+      break;
+      }
+   return 404;
+   } while (0);
+k = PostOrLoad(Clon,k);
+if (k>0) return k;
+if (k<0) {
+   k = -k;
+   if (k<=6) {
+      Me = Perr[k];
+      if (k==3) {
+         Bi = CAS_getHeaderValue(&Clon->Co,Textp.Clv);
+         k = atoi(Bi);
+         }
+      }
+   else Me = "%s %d octets read";
+   Bi = Clon->Bf[0] == 'P' ? "POST:" : "LOAD:";
+   Me = CAS_sPrintf(&Clon->Co,Me,Bi,k);
    }
-return 404;
+abortConnection(&Clon->Co,Me);
+return 0;
 }
 
 static void setSignal(int snl, void (*sHnd)(int), int fl) {
@@ -1382,11 +1387,24 @@ sigaction(snl,&Act,NULL);
 }
 
 static void processRequest(CAS_srvconn_t *Conn) {
-CAS_nPrintf(Conn,CAS_Srvinfo.Rh[0]);
-setitimer(ITIMER_REAL,&Srvcfg.Tpro,NULL);
-CAS_Srvinfo.preq(Conn);
-setitimer(ITIMER_REAL,&Srvcfg.Trst,NULL);
-if (CAS_Srvinfo.ss>0) CAS_updateSession(Conn);
+char *Ei;
+int k;
+Ei = ((T_cloninfo *)Conn)->Ei;
+memset(Ei,0,Conn->Pet-Ei);
+if (Conn->Bfo>=Ei) {
+   k = ((Ei - Conn->Bfi) + 1023) & ~1023;
+   Ei = Conn->Bfi + k;
+   if (Conn->Bfo>Ei) Conn->Bfo = Ei;
+   CAS_nPrintf(Conn,CAS_Srvinfo.Rh[0]);
+   setitimer(ITIMER_REAL,&Srvcfg.Tpro,NULL);
+   CAS_Srvinfo.preq(Conn);
+   setitimer(ITIMER_REAL,&Srvcfg.Trst,NULL);
+   if (CAS_Srvinfo.ss>0) CAS_updateSession(Conn);
+   }
+else {
+   Ei = CAS_sPrintf(Conn,"Input buffer overflow (%d octets needed)",Ei-Conn->Bfi);
+   CAS_nPrintf(Conn,CAS_Srvinfo.Rh[1],Ei);
+   }
 }
 
 int CAS_serverMutex(CAS_srvconn_t *Conn, int *Mtx, char op) {
@@ -1537,7 +1555,7 @@ if (k=='S') {
           }
    for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
        if (Clon->mi>s) s = Clon->mi;
-   CAS_nPrintf(Conn,"Buffer for input operations: %d octets\n",s+4);
+   CAS_nPrintf(Conn,"Buffer for input strings: %d octets\n",s+4);
    for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
        if (Clon->mt>s) s = Clon->mt;
    CAS_nPrintf(Conn,"Buffer for temporary strings: %d octets\n",s+4);
@@ -1748,7 +1766,7 @@ do {
                 case 'H': CAS_Srvinfo.html('R');
                           CAS_Srvinfo.html('L');
                           break;
-                case 'S': CAS_nPrintf(&Clon->Co,"Buffer for input operations: %d octets\n",Clon->mi+4);
+                case 'S': CAS_nPrintf(&Clon->Co,"Buffer for input strings: %d octets\n",Clon->mi+4);
                           CAS_nPrintf(&Clon->Co,"Buffer for temporary strings: %d octets\n",Clon->mt+4);
                           break;
                 case 'E': deleteExpiredSession(&Clon->Co);
@@ -1810,7 +1828,7 @@ if (o==0) {
       sprintf(Othinf.Buf,"%s.ssn",Othinf.Npg);
       CAS_initSessionSupport(Othinf.Buf);
       }
-   Srvcfg.stkT = Srvcfg.stks; /* drop this line if stack is growing upward */
+   Srvcfg.stkT = Srvcfg.stks; /* drop this line if stack grows upward */
    serverCycle();
    }
 else processCommand(Cmds[o]);
