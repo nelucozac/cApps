@@ -1394,7 +1394,8 @@ memset(Ei,0,Conn->Pet-Ei);
 if (Conn->Bfo>=Ei) {
    k = ((Ei - Conn->Bfi) + 1023) & ~1023;
    Ei = Conn->Bfi + k;
-   if (Conn->Bfo>Ei) Conn->Bfo = Ei;
+   if (Conn->Bfo>Ei)
+      ((T_cloninfo *)Conn)->Po = Conn->Bfo = Ei;
    CAS_nPrintf(Conn,CAS_Srvinfo.Rh[0]);
    setitimer(ITIMER_REAL,&Srvcfg.Tpro,NULL);
    CAS_Srvinfo.preq(Conn);
