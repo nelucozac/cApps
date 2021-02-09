@@ -32,7 +32,7 @@ if (n<0) n = 0;
 if (n>Limit) n = Limit;
 if (CAS_getParamValue(Conn,"Xml",NULL)) {
    CAS_resetOutputBuffer(Conn);
-   CAS_nPrintf(Conn,CAS_Srvinfo.Rh[2]);
+   CAS_nPrintf(Conn,CAS_Srvinfo.Rh[3]);
    Fmt = Xml;
    }
 else Fmt = Htm;
