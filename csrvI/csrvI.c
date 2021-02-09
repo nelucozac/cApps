@@ -100,7 +100,7 @@ if (*Prms->W) do {
    mysql_free_result(Res);
    } while (0);
 Fmt = CAS_endOfString(Fmt,1);
-CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
+CAS_nPrintf(Conn,Fmt,CAS_getTime(Conn));
 }
 
 static void strCopy(char *Ds, char *So, int ls) {
