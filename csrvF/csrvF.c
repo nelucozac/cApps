@@ -163,7 +163,7 @@ if (*Wrd) do {
       } while (strcmp(Pinfw->W,Wrd)==0);
    } while (0);
 Fmt = CAS_endOfString(Fmt,1);
-CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
+CAS_nPrintf(Conn,Fmt,CAS_getTime(Conn));
 }
 
 static void strCopy(char *Ds, char *So, int ls) {
