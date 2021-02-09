@@ -32,7 +32,7 @@ for (Pnam=NULL; Pnam=CAS_getHeaderName(Conn,Pnam); )
     CAS_nPrintf(Conn,"%s : %s<br>\n",Pnam,CAS_getHeaderValue(Conn,Pnam));
 Pnam = "uSer-aGent";
 CAS_nPrintf(Conn,"<br>%s : %s<br><br>\n",Pnam,CAS_getHeaderValue(Conn,Pnam));
-CAS_nPrintf(Conn,"Elapsed time : %.3e\n",CAS_getTime(NULL)-Conn->tim);
+CAS_nPrintf(Conn,"Elapsed time : %.3f\n",CAS_getTime(Conn));
 }
 
 void CAS_registerUserSettings(void) {
