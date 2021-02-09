@@ -92,7 +92,7 @@ return Out;
 
 static void sendUnauthorized(CAS_srvconn_t *Conn) {
 CAS_resetOutputBuffer(Conn);
-CAS_nPrintf(Conn,CAS_Srvinfo.Rh[2]);
+CAS_nPrintf(Conn,CAS_Srvinfo.Rh[3]);
 CAS_nPrintf(Conn,"You must enter User name and Password");
 }
 
