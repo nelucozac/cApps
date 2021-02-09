@@ -10,17 +10,17 @@ This online distribution includes:
 ### **cApps-get.pdf** documentation ###
 
 The examples from csrvA to csrvJ cover a lot of problems which can be solved using this framework:
-- obtain GET parameters (URL) and header messages;
-- send files to client / browser;
-- generate tables with variable number of rows and / or columns;
+- obtaining GET parameters (URL) and header messages;
+- sending files to client / browser;
+- generating tables with variable number of rows and / or columns;
 - complex problems: concurrent access to a big file using fast mutexes;
-- develop benchmark program to evaluate the performances of your application server;
-- use complex data structures: determining an optimum path in a graph;
-- use your own log file to record every request coming from clients;
-- deny requests coming from some particular Ip addresses;
-- develop your own functions to create strings without memory allocation / deallocation (dealing with temporary strings);
-- how to handle the timeout problem (time limit of the process exceeds);
-- use mysql databases;
+- developing benchmark program to evaluate the performances of your application server;
+- using complex data structures: determining an optimum path in a graph;
+- using your own log file to record every request coming from clients;
+- denying requests coming from some particular Ip addresses;
+- developing your own functions to create strings without memory allocation / deallocation (dealing with temporary strings);
+- handling the timeout problem (time limit of the process exceeds);
+- using mysql databases;
 - basic authentication, together with Base64 encoding and decoding functions.
 
 Every example includes all the necessary files to build and run the application server:
@@ -29,7 +29,7 @@ C source files, compile scripts, configuration files, data files (if necessary) 
 -----
 
 *At this time, only GET requests are used by these examples.*
-*POST requests and sessions are not yet documented.*
+*POST, LOAD requests and sessions are not yet documented.*
 
 *However, you can use POST requests, see Appendix G* (*from cApps-get.pdf document*) *for details.*
 
