@@ -95,7 +95,7 @@ for (s=0,w=0.25,p=1; p<=n; p++,w=-w) {
     }
 CAS_nPrintf(Conn,"%s s = %.2f, p = %D<br>",Conn->tmo?"Partial":"Completed",s,p);
 Conn->tmo = 0;
-CAS_nPrintf(Conn,"Elapsed time: %.3e",CAS_getTime(NULL)-Conn->tim);
+CAS_nPrintf(Conn,"Elapsed time: %.3f",CAS_getTime(Conn));
 }
 
 static void processRequest(CAS_srvconn_t *Conn) {
