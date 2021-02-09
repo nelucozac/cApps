@@ -105,12 +105,6 @@ for (k=0,Pt=Lthr; k<nthrs; k++,Pt++)
 nrt = NREQS / nthrs;
 }
 
-long double CAS_getTime(CAS_srvconn_t *Conn) {
-struct timespec Tsp;
-clock_gettime(CLOCK_MONOTONIC_RAW,&Tsp);
-return Tsp.tv_sec + Tsp.tv_nsec / 1000000000.0;
-}
-
 static void checkResponse(char *Bi) {
 if (strstr(Bi,"</html>")==NULL) {
    fputs("Some errors occured\n",stderr);
@@ -119,7 +113,7 @@ if (strstr(Bi,"</html>")==NULL) {
 }
 
 static void *process(PTHR_inf *Arg) {
-int r;
+int r,k;
 char **Pdi,**Pdf,**Pd,*B;
 Pdi = Dictio + (Arg-Lthr) * nrt;
 Pdf = Pdi + nrt;
@@ -145,11 +139,10 @@ for (Pd=Pdi; Pd<Pdf; Pd++) {
     B = Arg->B;
     memset(B,0,BFSIZE);
     do {
-       r = BFSIZE - (B - Arg->B) - 1;
-       r = recv(Arg->s,B,r,0);
-       if (r==0) break;
+       k = BFSIZE - (B - Arg->B) - 1;
+       r = recv(Arg->s,B,k,0);
        B += r; /* drop this line if don't know maximum size of html page */
-       } while (1);
+       } while (r==k);
     checkResponse(Arg->B);
     close(Arg->s);
     }
@@ -157,19 +150,21 @@ return NULL;
 }
 
 int main() {
-double ti;
+struct timeval Tma,Tmb;
+long double ti;
 PTHR_inf *Pt;
 readDictio();
 benchMarkConfig();
-ti = CAS_getTime(NULL);
+gettimeofday(&Tma,NULL);
 for (Pt=Lthr; Pt->B; Pt++)
     pthread_create(&Pt->p,NULL,(void *(*)(void *))process,Pt);
 for (Pt=Lthr; Pt->B; Pt++) pthread_join(Pt->p,NULL);
-ti = CAS_getTime(NULL) - ti;
+gettimeofday(&Tmb,NULL);
+ti = ((long double)Tmb.tv_sec - Tma.tv_sec) + ((long double)Tmb.tv_usec - Tma.tv_usec) / 1000000.0;
 free(Dictio[0]);
 free(Dictio);
-fprintf(stderr,"Elapsed time: %.5lf seconds\n",ti);
-fprintf(stderr,"Time per request (average): %.5lf seconds\n",ti/NREQS);
-fprintf(stderr,"Requests per second (average): %.5lf requests\n",NREQS/ti);
+fprintf(stderr,"Elapsed time: %.5Lf seconds\n",ti);
+fprintf(stderr,"Time per request (average): %.5Lf seconds\n",ti/NREQS);
+fprintf(stderr,"Requests per second (average): %.5Lf requests\n",NREQS/ti);
 return 0;
 }
