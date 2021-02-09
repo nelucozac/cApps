@@ -88,7 +88,7 @@ tp = 0;
 P = CAS_getLastParamValue(Conn,"Dsp");
 if (dep>0) if (arv>0) if (dep!=arv) {
    minCostPath(dep,arv,&Mk);
-   CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
+   CAS_nPrintf(Conn,Fmt,CAS_getTime(Conn));
    if (*P) tp = strlen(Prms->Fh);
    }
 Fmt = CAS_endOfString(Fmt,1);
@@ -107,7 +107,7 @@ if (tp>0) if (*P==0) {
    CAS_nPrintf(Conn,Fmt,nv,Mk.C[arv],tp);
    }
 Fmt = CAS_endOfString(Fmt,1);
-CAS_nPrintf(Conn,Fmt,CAS_getTime(NULL)-Conn->tim);
+CAS_nPrintf(Conn,Fmt,CAS_getTime(Conn));
 }
 
 static void strCopy(char *Tg, char *So) {
