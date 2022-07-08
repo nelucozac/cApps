@@ -13,7 +13,7 @@ static struct {
 static void recordRequest(CAS_srvconn_t *Conn) {
 char *Bf,*Pb,*P,*Q;
 int l;
-Bf = calloc(65536,1);
+Bf = Conn->Pct;
 inet_ntop(CAS_Srvinfo.af,Conn->Ipc,Bf,INET6_ADDRSTRLEN);
 Pb = CAS_endOfString(Bf,0);
 *Pb++ = ' ';
@@ -33,7 +33,6 @@ if (P=strcasestr(P,"User-agent:")) {
 *Pb++ = '\n';
 *Pb++ = '\n';
 l = write(Config.fLog,Bf,Pb-Bf);
-free(Bf);
 }
 
 static int acceptConnection(unsigned char *Ipc) {
@@ -111,7 +110,7 @@ manageTimeout(Conn);
 }
 
 void CAS_registerUserSettings(void) {
-Config.fLog = open("ssrvH.log",O_APPEND|O_CREAT|O_WRONLY|O_DSYNC,0600);
+Config.fLog = open("csrvH.log",O_APPEND|O_CREAT|O_WRONLY|O_DSYNC,0600);
 CAS_Srvinfo.rwrl = recordRequest;
 CAS_Srvinfo.preq = processRequest;
 CAS_Srvinfo.cnfg = userConfig;
