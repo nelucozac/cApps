@@ -9,7 +9,7 @@
 
 typedef struct { char *W; MYSQL *M; } T_userinf;
 
-static struct { char *H, *D, *U, *P; } Myini;
+static struct { char *H, *D, *U, *P; } MySqlIni;
 
 static char *Fhtm;
 
@@ -26,10 +26,10 @@ return Q;
 }
 
 static void userConfig(char *Cfg) {
-Cfg = myGetString(Cfg,&Myini.H);
-Cfg = myGetString(Cfg,&Myini.D);
-Cfg = myGetString(Cfg,&Myini.U);
-myGetString(Cfg,&Myini.P);
+Cfg = myGetString(Cfg,&MySqlIni.H);
+Cfg = myGetString(Cfg,&MySqlIni.D);
+Cfg = myGetString(Cfg,&MySqlIni.U);
+myGetString(Cfg,&MySqlIni.P);
 }
 
 static void errorFromMysql(CAS_srvconn_t *Conn, char *Msg, char *Sql) {
@@ -121,10 +121,10 @@ int l;
 Conn->Usr = &Prms;
 Prms.M = mysql_init(NULL);
 if (Prms.M == NULL) {
-   errorFromMysql(Conn,"","");
+   errorFromMysql(Conn,NULL,NULL);
    return;
    }
-if (mysql_real_connect(Prms.M,Myini.H,Myini.U,Myini.P,Myini.D,0,NULL,0)==NULL) {
+if (mysql_real_connect(Prms.M,MySqlIni.H,MySqlIni.U,MySqlIni.P,MySqlIni.D,0,NULL,0)==NULL) {
    errorFromMysql(Conn,"connect","");
    return;
    }
