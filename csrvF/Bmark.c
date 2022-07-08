@@ -141,7 +141,7 @@ for (Pd=Pdi; Pd<Pdf; Pd++) {
     do {
        k = BFSIZE - (B - Arg->B) - 1;
        r = recv(Arg->s,B,k,0);
-       B += r; /* drop this line if don't know maximum size of html page */
+       B += r; /* drop this line if you don't know maximum size of html page */
        } while (r==k);
     checkResponse(Arg->B);
     close(Arg->s);
