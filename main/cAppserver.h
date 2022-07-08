@@ -48,17 +48,10 @@
 #include <sys/syscall.h>
 #include <linux/futex.h>
 
-#ifdef _Secure_application_server
-#define _Release_application_server
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#endif
-
 #define CAS_endOfString(S, k) ((S) + (strlen(S) + (k)))
 
 typedef struct {
         unsigned char Ipc[16];
-        long double tim;
         time_t uts;
         char *Bfi, *Bfo, *Bft;
         char *Pct, *Pet;
@@ -78,10 +71,12 @@ typedef struct {
         } CAS_srvinfo_t;
 extern CAS_srvinfo_t CAS_Srvinfo;
 
-long double CAS_getTime(CAS_srvconn_t *Conn);
+void CAS_registerUserSettings(void);
+
+double CAS_getTime(CAS_srvconn_t *Conn);
 
 int CAS_explodeHtm(char *Htmi, void *Htmo, int siz),
-    CAS_serverMutex(CAS_srvconn_t *Conn, int *Mtx, char op);
+    CAS_serverMutex(CAS_srvconn_t *Conn, int32_t *Mtx, char op);
 
 char *CAS_getParamName(CAS_srvconn_t *Conn, char *From),
      *CAS_getParamValue(CAS_srvconn_t *Conn, char *Name, char *From),
@@ -98,8 +93,7 @@ char *CAS_getParamName(CAS_srvconn_t *Conn, char *From),
 void CAS_sendContentToClient(CAS_srvconn_t *Conn, char *Nft, char *Rhf, void *Buf, int siz),
      CAS_sendFileToClient(CAS_srvconn_t *Conn, char *Nft, char *Rhf, int (*valid)(char *)),
      CAS_nPrintf(CAS_srvconn_t *Conn, char *Fmt, ...),
-     CAS_resetOutputBuffer(CAS_srvconn_t *Conn),
-     CAS_registerUserSettings(void);
+     CAS_resetOutputBuffer(CAS_srvconn_t *Conn);
 
 void CAS_createSession(CAS_srvconn_t *Conn),
      CAS_checkSession(CAS_srvconn_t *Conn, char *Sva),
