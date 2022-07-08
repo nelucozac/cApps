@@ -9,7 +9,8 @@ typedef struct { int p; char *W; } T_wordinf;
 
 static struct { 
        T_wordinf *Wrd;
-       int nwo, mlw, mld, dfh, mtx;
+       int nwo, mlw, mld, dfh;
+       int32_t mtx;
        char *Bfi, *Htm;
        } Dic_inf;
 
