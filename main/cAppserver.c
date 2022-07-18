@@ -53,7 +53,7 @@ static struct {
        sigset_t mask, omsk;
        char *Cfg, *Npg, Buf[4096];
        int pid, err, nls;
-       char req;
+       char req, psu;
        } Othinf;
 
 static struct {
@@ -1584,7 +1584,11 @@ do {
          for (r=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
              if (Clon->sk>0) if (Clon->rq==0)
                 r++;
-         if (r>0) sigsuspend(&Othinf.omsk);
+         if (r>0) {
+            Othinf.psu++;
+            sigsuspend(&Othinf.omsk);
+            Othinf.psu--;
+            }
          }
       continue;
       }
@@ -1613,50 +1617,51 @@ int s,k;
 k = checkAdminRequest(Conn);
 if (k==404) return k;
 Clon = (T_cloninfo *)Conn;
-if (k=='S') {
-   CAS_nPrintf(Conn,"Ok server %s %d -show\nClone Socket IP address\n",Othinf.Npg,Clon->pd);
-   for (s=0,Clon=Lstclon.Cl; Clon->Sb; s++,Clon++)
-       if (Clon->pd) if (Clon->sk) {
-          inet_ntop(CAS_Srvinfo.af,&Clon->Co.Ipc,Ip,sizeof(Ip));
-          CAS_nPrintf(Conn,"%5d %6d  %s\n",Clon->pd,Clon->sk,Ip);
-          }
-   for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-       if (Clon->mi>s) s = Clon->mi;
-   CAS_nPrintf(Conn,"Buffer for input strings: %d octets\n",s+4);
-   for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-       if (Clon->mt>s) s = Clon->mt;
-   CAS_nPrintf(Conn,"Buffer for temporary strings: %d octets\n",s+4);
-   if (Srvcfg.stkT) {
-      for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-          for (k=0; k<Srvcfg.stks; k++)
-              if (Clon->Sb[k]!=0) {
-                 k = Srvcfg.stks - k;
-                 if (k>s) s = k;
-                 break;
-                 }
-      }
-   else {
-      for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-          for (k=Srvcfg.stks-1; k>=0; k--)
-              if (Clon->Sb[k]!=0) {
-                 if (k>s) s = k;
-                 break;
-                 }
-      }
-   CAS_nPrintf(Conn,"Maximum stack size: %d\n",(s+4)*sizeof(int));
-   k = 'S';
-   }
-else
-if (k=='E') {
-   deleteExpiredSession(Conn);
-   CAS_nPrintf(Conn,CAS_Srvinfo.Rh[0]);
-   }
-else {
-   Clon->rq = k;
-   kill(Othinf.pid,SIGCONT);
-   sigsuspend(&Othinf.omsk);
-   Clon->rq = 0;
-   }
+switch (k) {
+       case 'S':
+            CAS_nPrintf(Conn,"Ok server %s %d -show\nClone Socket IP address\n",Othinf.Npg,Clon->pd);
+            for (s=0,Clon=Lstclon.Cl; Clon->Sb; s++,Clon++)
+                if (Clon->pd) if (Clon->sk) {
+                   inet_ntop(CAS_Srvinfo.af,&Clon->Co.Ipc,Ip,sizeof(Ip));
+                   CAS_nPrintf(Conn,"%5d %6d  %s\n",Clon->pd,Clon->sk,Ip);
+                   }
+            for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
+                if (Clon->mi>s) s = Clon->mi;
+            CAS_nPrintf(Conn,"Buffer for input strings: %d octets\n",s+4);
+            for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
+                if (Clon->mt>s) s = Clon->mt;
+            CAS_nPrintf(Conn,"Buffer for temporary strings: %d octets\n",s+4);
+            if (Srvcfg.stkT) {
+               for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
+                   for (k=0; k<Srvcfg.stks; k++)
+                       if (Clon->Sb[k]!=0) {
+                          k = Srvcfg.stks - k;
+                          if (k>s) s = k;
+                          break;
+                          }
+                       else {
+                          for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
+                              for (k=Srvcfg.stks-1; k>=0; k--)
+                                  if (Clon->Sb[k]!=0) {
+                                     if (k>s) s = k;
+                                     break;
+                                     }
+                          }
+               }
+            CAS_nPrintf(Conn,"Maximum stack size: %d\n",(s+4)*sizeof(int));
+            k = 'S';
+            break;
+       case 'E':
+            deleteExpiredSession(Conn);
+            CAS_nPrintf(Conn,CAS_Srvinfo.Rh[0]);
+            break;
+       default:
+            Clon->rq = k;
+            kill(Othinf.pid,SIGCONT);
+            sigsuspend(&Othinf.omsk);
+            Clon->rq = 0;
+            break;
+       }
 return k;
 }
 
@@ -1689,7 +1694,7 @@ do {
    if (hk==404) CAS_nPrintf(&Clon->Co,"%s Not found\n",CAS_Srvinfo.Rh[1]);
    sendToClient(&Clon->Co,NULL,0);
    closeSocket(Clon);
-   kill(Othinf.pid,SIGCONT);
+   if (Othinf.psu) kill(Othinf.pid,SIGCONT);
    } while (1);
 return Clon->pd = Clon->rq = 0;
 }
@@ -1742,7 +1747,6 @@ do {
    } while (Othinf.req!='Z');
 for (Clon=Lstclon.Cl; Clon->Sb; Clon++)
     kill(Clon->pd,SIGCONT);
-kill(Clon[1].pd,SIGCONT);
 }
 
 #else
