@@ -71,11 +71,11 @@ Mssg = calloc(fs+1,1);
 lseek(Fc,0,SEEK_SET);
 fs = read(Fc,Mssg,fs);
 close(Fc);
-memcpy(Mssg,"-wait ",6);
+memcpy(Mssg,"--wait ",7);
 P = strstr(Mssg,"- Server ");
 P = strchr(P,'\n');
 sscanf(P,"%s %d %*s %s %d %*s %*s %*s %*s %*s %*s %d",Pswd,&v,Ipa,&p,&t);
-strcpy(Mssg+6,Pswd);
+strcpy(Mssg+7,Pswd);
 memset(&Sadr,0,sizeof(Sadr));
 if (v==4) {
    inet_pton(AF_INET,Ipa,&Sadr.v4.sin_addr.s_addr);
