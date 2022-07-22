@@ -10,6 +10,8 @@
 
 T_graphinf Graph;
 
+static int32_t mtx = 1;
+
 static char *myScanf(char *Bfi, char *Fmt, ...) {
 va_list Prms;
 char *Pch,c;
@@ -130,10 +132,12 @@ return 1;
 void minCostPath(int dep, int arv, T_vmark *Mk) {
 int x,y,w,*C;
 T_succinf *Ps,*Pn;
+CAS_serverMutex(NULL,&mtx,'L');
 Mk->C = calloc(Graph.nn+1,sizeof(int));
 Mk->P = calloc(Graph.nn+1,sizeof(int));
 Mk->Q = calloc(Graph.nn+1,sizeof(int));
-Mk->E = calloc(Graph.nn+1,sizeof(signed char));
+Mk->E = malloc(Graph.nn+1);
+CAS_serverMutex(NULL,&mtx,'R');
 for (x=1,C=Mk->C+1; x<=Graph.nn; x++)
     *C++ = Infinity;
 memset(Mk->E,-1,Graph.nn+1);
@@ -157,8 +161,6 @@ if (x==arv) {
          }
    }
 else Mk->n = -1;
-free(Mk->P);
-free(Mk->E);
 }
 
 static void freeUserData(void) {
