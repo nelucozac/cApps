@@ -99,7 +99,7 @@ void CAS_createSession(CAS_srvconn_t *Conn),
      CAS_checkSession(CAS_srvconn_t *Conn, char *Sva),
      CAS_deleteSession(CAS_srvconn_t *Conn, char *Sva);
 
-/* The following functions have been designed for internal use */
+/* The following functions have been developed for internal use */
 void CAS_convertBinaryToName(char *Nam, int np, unsigned long long val),
      CAS_updateSession(CAS_srvconn_t *Conn),
      CAS_initSessionSupport(char *Sfn);
