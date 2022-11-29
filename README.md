@@ -3,7 +3,7 @@
 (*only for Linux*)
 
 This online distribution includes:
-- main directory, the following files: cAppserver.c, cAppserver.h, cAppserver.cfg, Stack.c;
+- main directory, the following files: cAppserver.c, cAppserver.h, cAppserver.cfg, Stack.c, Sortlog.c;
 - csrvA to csrvJ directories: examples about how to develop your own C application server;
 - and cApps-get.pdf documentation, which details every example from csrvA to csrvJ.
 
