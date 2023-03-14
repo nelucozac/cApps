@@ -10,8 +10,8 @@ typedef struct { int p; char *W; } T_wordinf;
 static struct { 
        T_wordinf *Wrd;
        int nwo, mlw, mld, dfh;
-       int32_t mtx;
        char *Bfi, *Htm;
+       pthread_mutex_t mtx;
        } Dic_inf;
 
 typedef struct { char *W, *D; } T_userinf;
@@ -153,10 +153,10 @@ if (*Wrd) do {
    if (Pinfw==NULL) break;
    Fmt = CAS_endOfString(Dic_inf.Htm,1);
    do {
-      CAS_serverMutex(Conn,&Dic_inf.mtx,'L');
+      pthread_mutex_lock(&Dic_inf.mtx);
       lseek(Dic_inf.dfh,Pinfw->p,SEEK_SET);
       l = read(Dic_inf.dfh,Def,Dic_inf.mld);
-      CAS_serverMutex(Conn,&Dic_inf.mtx,'R');
+      pthread_mutex_unlock(&Dic_inf.mtx);
       if (P=strchr(Def,'\n')) *P = 0;
       Def[l] = 0;
       CAS_nPrintf(Conn,Fmt,Wrd,Def);
@@ -198,5 +198,5 @@ void CAS_registerUserSettings(void) {
 CAS_Srvinfo.preq = processRequest;
 CAS_Srvinfo.data = manageUserData;
 CAS_Srvinfo.html = manageUserHtml;
-Dic_inf.mtx = 1;
+pthread_mutex_init(&Dic_inf.mtx,NULL);
 }
