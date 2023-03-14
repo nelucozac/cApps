@@ -109,12 +109,10 @@ if (tp>0) if (*P==0) {
 Fmt = CAS_endOfString(Fmt,1);
 CAS_nPrintf(Conn,Fmt,CAS_getTime(Conn));
 if (tp>0) {
-   CAS_serverMutex(Conn,&mtx,'L');
-   free(Mk->C);
-   free(Mk->P);
-   free(Mk->Q);
-   free(Mk->E);
-   CAS_serverMutex(Conn,&mtx,'R');
+   free(Mk.C);
+   free(Mk.P);
+   free(Mk.Q);
+   free(Mk.E);
    }
 }
 
