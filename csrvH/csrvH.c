@@ -82,21 +82,6 @@ while (c=*P) {
 return Str;
 }
 
-static void manageTimeout(CAS_srvconn_t *Conn) {
-double s,w;
-long long p,n;
-n = atoll(CAS_getLastParamValue(Conn,"N"));
-if (n==0) n = 9000000000;
-CAS_nPrintf(Conn,"<br>Heavy program sequence begins, n = %D<br>",n);
-for (s=0,w=0.25,p=1; p<=n; p++,w=-w) {
-    s += w * p;
-    if (p%1000==0) if (Conn->tmo) break;
-    }
-CAS_nPrintf(Conn,"%s s = %.2f, p = %D<br>",Conn->tmo?"Partial":"Completed",s,p);
-Conn->tmo = 0;
-CAS_nPrintf(Conn,"Elapsed time: %.3f",CAS_getTime(Conn));
-}
-
 static void processRequest(CAS_srvconn_t *Conn) {
 char *A,*B,*C,*S;
 A = "string A";
@@ -106,7 +91,6 @@ S = " - ";
 CAS_nPrintf(Conn,"First concatenation: %s<br>",concat(Conn,A,S,B,S,C,NULL));
 CAS_nPrintf(Conn,"Second concatenation: %s<br>",concat(Conn,B,S,C,A,NULL));
 CAS_nPrintf(Conn,"%s<br>",stringToUpper(CAS_sPrintf(Conn,"%x",0xabcdef)));
-manageTimeout(Conn);
 }
 
 void CAS_registerUserSettings(void) {
