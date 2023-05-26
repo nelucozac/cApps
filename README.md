@@ -24,7 +24,11 @@ The examples from csrvA to csrvJ cover a lot of problems which can be solved usi
 - denying requests coming from some particular Ip addresses;
 - developing your own functions to create strings without memory allocation / deallocation (dealing with temporary strings);
 - using mysql databases;
-- basic authentication, together with Base64 encoding and decoding functions.
+- basic authentication, together with Base64 encoding and decoding functions;
+- session support (with and without cookies);
+- protection against slowloris attack;
+- how to upload files on server;
+- https support.
 
 Every example includes all the necessary files to build and run the application server:
 C source files, compile scripts, configuration files, data files (if necessary) etc.
