@@ -17,6 +17,7 @@
 #define _Release_application_server
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <pthread.h>
 #endif
 
 typedef struct {
@@ -24,42 +25,42 @@ typedef struct {
         #ifdef _Secure_application_server
         SSL *Ss;
         #endif
-        int *Sb, pd, mt, mi, sk;
+        union { pthread_t td; long long id; } ;
+        int mt, mi, sk;
         char *Bf, *Pm, *Hm, *Po, *Ei;
-        char rq;
-        signed char cs;
         time_t us;
-        } T_cloninfo;
+        signed char cs;
+        char rq, xc;
+        } T_threadinfo;
 
 CAS_srvinfo_t CAS_Srvinfo;
 
-static char *Cmds[] = { "--start", "--stop", "--cnfg", "--data", "--html", "--show", NULL, "--wait", "--essn" } ;
+static char *Mssg[] = { "--start", "--stop", "--cnfg", "--data", "--html", "--show", NULL, "--wait", "--essn" } ;
+static char *Okdt = "Ok data";
 
 static struct {
-       int stks, sBfi, sBfo, sBft, stkT;
+       int stks, sBfi, sBfo, sBft;
+       int lsa, norp, lbf, lpw, Lpo[2];
+       int pto, err, nls, Dsk[2];
+       int *Wstk;
+       pthread_t tid;
+       char *Pswd, *Pcfg, *Nprg, Ncfg[4096];
+       char Buf[4096], Herr[256], *Mtl;
        unsigned char Lhst[16];
-       void *Psa;
-       int lsa, norp, lbf, lpw;
-       int Lpo[2];
-       char *Pswd, Ncfg[4096], Herr[256], *Mtl;
-       struct itimerval Tpro, Trst;
        struct timeval Trcv;
-       } Srvcfg;
-
-static struct {
        struct rlimit Rlim;
        union { struct sockaddr_in Sao; struct sockaddr_in6 San; } ;
        struct pollfd Pof[2];
-       sigset_t mask, omsk;
-       char *Cfg, *Npg, Buf[4096];
-       int pid, err, nls;
-       char req, psu;
-       } Othinf;
+       sigset_t Pmsk, Wmsk;
+       pthread_attr_t Attr;
+       void *Psa;
+       char req, psu, stkT;
+       } Srvcfg;
 
 static struct {
-       T_cloninfo *Cl;
+       T_threadinfo *Cl;
        int nc;
-       } Lstclon;
+       } Lsthread;
 
 static void errorMessage(char *, int);
 
@@ -75,27 +76,25 @@ static struct {
 
 static char *Ectx = "Create SSL_CTX object";
 
-static char *secureError(T_cloninfo *Clon, char *Op) {
+static char *secureError(T_threadinfo *Thrd, char *Op) {
 char *Er;
 int k,l;
-Er = Clon->Co.Pct;
+Er = Thrd->Co.Pct;
 l = 0;
 do {
    k = ERR_get_error();
    if (k==0) break;
    if (l++>0) continue;
-   Clon->Co.Pct = Er + sprintf(Er,"%s - %s",Op,ERR_reason_error_string(k)) + 1;
+   Thrd->Co.Pct = Er + sprintf(Er,"%s - %s",Op,ERR_reason_error_string(k)) + 1;
    } while (1);
 return Er;
 }
 
 static void errorCertificate(char *Me) {
-T_cloninfo *Clon;
-fprintf(stderr,"%s - %s\n",Me,ERR_reason_error_string(ERR_get_error()));
-if (Lstclon.Cl) {
-   for (Clon=Lstclon.Cl; Clon->Sb; Clon++)
-       if (Clon->pd>0) kill(Clon->pd,SIGKILL);
-   }
+int s;
+sprintf(Srvcfg.Buf,"0000/00/00 00:00 - %s: %s\n",Me,ERR_reason_error_string(ERR_get_error()));
+if (Srvcfg.err>0) s = write(Srvcfg.err,Srvcfg.Buf,strlen(Srvcfg.Buf));
+fputs(Srvcfg.Buf,stderr);
 exit(1);
 }
 
@@ -136,21 +135,21 @@ free(Pem);
 SSL_CTX_set_mode(Secinf.Ctx,SSL_MODE_AUTO_RETRY);
 }
 
-static int redirectToHttps(T_cloninfo *Clon) {
+static int redirectToHttps(T_threadinfo *Thrd) {
 char *Bi,*Bf,*Pa,c;
 int l,p;
 if (CAS_Srvinfo.Rh[2]==NULL) return 404;
-Bi = Clon->Bf + 4;
+Bi = Thrd->Bf + 4;
 do {
    c = *++Bi;
    if (c==0) return 404;
    if (isspace(c)) break;
    } while (1);
-if (Bi-Clon->Bf==5) Bi--;
+if (Bi-Thrd->Bf==5) Bi--;
 *Bi++ = 0;
-Bf = Clon->Bf + 4;
+Bf = Thrd->Bf + 4;
 l = strlen(Bf) + 1;
-Pa = Clon->Bf + Srvcfg.sBfo - l;
+Pa = Thrd->Bf + Srvcfg.sBfo - l;
 memcpy(Pa,Bf,l);
 do {
    do {
@@ -177,10 +176,10 @@ do {
          break;
          }
       } while (1);
-   Bf = Clon->Bf + 4;
+   Bf = Thrd->Bf + 4;
    break;
    } while (1);
-Bf = Clon->Bf;
+Bf = Thrd->Bf;
 l = strlen(Bi);
 memmove(Bf,Bi,l);
 p = Srvcfg.Lpo[1];
@@ -190,14 +189,14 @@ if (p!=443) {
    }
 Pa -= l;
 memcpy(Pa,Bf,l);
-CAS_nPrintf(&Clon->Co,CAS_Srvinfo.Rh[2],Pa);
+CAS_nPrintf(&Thrd->Co,CAS_Srvinfo.Rh[2],Pa);
 return 301;
 }
 
 #endif
 
 void CAS_resetOutputBuffer(CAS_srvconn_t *Conn) {
-((T_cloninfo *)Conn)->Po = Conn->Bfo;
+((T_threadinfo *)Conn)->Po = Conn->Bfo;
 }
 
 void CAS_convertBinaryToName(char *Nam, int np, unsigned long long val) {
@@ -210,9 +209,10 @@ for (l=np-1,Nam[np]=0; l>=0; l--) {
     }
 }
 
-static char *whichCommand(char c) {
-static char *Scmd = "-ZCDHS-W";
-return Cmds[strchr(Scmd,c)-Scmd];
+static char *whichMessage(char c) {
+static char *Smsg = "-ZCDHS-W";
+if (c=='E') return Mssg[8];
+return Mssg[strchr(Smsg,c)-Smsg];
 }
 
 static int checkAdminRequest(CAS_srvconn_t *Conn) {
@@ -226,13 +226,13 @@ if (memcmp(Bf,Srvcfg.Pswd,Srvcfg.lpw)!=0) return 404;
 c = Bf[Srvcfg.lpw];
 if (c) if (c!=' ') return 404;
 Bf = Conn->Bfi;
-if (memcmp(Bf,Cmds[2],6)==0) return 'C';
-if (memcmp(Bf,Cmds[3],6)==0) return 'D';
-if (memcmp(Bf,Cmds[4],6)==0) return 'H';
-if (memcmp(Bf,Cmds[5],6)==0) return 'S';
-if (memcmp(Bf,Cmds[7],6)==0) return 'W';
-if (memcmp(Bf,Cmds[8],6)==0) return 'E';
-if (memcmp(Bf,Cmds[1],6)==0) return 'Z';
+if (memcmp(Bf,Mssg[2],6)==0) return 'C';
+if (memcmp(Bf,Mssg[3],6)==0) return 'D';
+if (memcmp(Bf,Mssg[4],6)==0) return 'H';
+if (memcmp(Bf,Mssg[5],6)==0) return 'S';
+if (memcmp(Bf,Mssg[7],6)==0) return 'W';
+if (memcmp(Bf,Mssg[8],6)==0) return 'E';
+if (memcmp(Bf,Mssg[1],6)==0) return 'Z';
 return 404;
 }
 
@@ -245,39 +245,42 @@ Conn->Ssn = &Essn;
 CAS_updateSession(Conn);
 }
 
-static int recvFromClient(T_cloninfo *Clon, void *Buf, int len) {
+static int recvFromClient(T_threadinfo *Thrd, void *Buf, int len) {
 #ifdef _Secure_application_server
-if (Clon->cs>0)
-   return SSL_read(Clon->Ss,Buf,len);
+int s;
+if (Thrd->cs>0) {
+   s = SSL_read(Thrd->Ss,Buf,len);
+   return s;
+   }
 #endif
-return recv(Clon->sk,Buf,len,0);
+return recv(Thrd->sk,Buf,len,0);
 }
 
 static void sendToClient(CAS_srvconn_t *Conn, char *Bf, int ls) {
-T_cloninfo *Clon;
+T_threadinfo *Thrd;
 int s;
-Clon = (T_cloninfo *)Conn;
+Thrd = (T_threadinfo *)Conn;
 if (Bf==NULL) {
    Bf = Conn->Bfo;
-   ls = Clon->Po - Bf;
+   ls = Thrd->Po - Bf;
    }
 if (ls>0) {
    do {
       #ifdef _Secure_application_server
-      if (Clon->cs>0) {
-         s = SSL_write(Clon->Ss,Bf,ls);
-         if (s<0) secureError(Clon,"");
+      if (Thrd->cs>0) {
+         s = SSL_write(Thrd->Ss,Bf,ls);
+         if (s<0) secureError(Thrd,"");
          }
       else
       #endif
-      s = send(Clon->sk,Bf,ls,0);
+      s = send(Thrd->sk,Bf,ls,0);
       if (s==ls) break;
       if (s<=0) break;
       Bf += s;
       ls -= s;
       } while (1);
    memset(Conn->Bfo,0,Conn->Bft-Conn->Bfo);
-   Clon->Po = Conn->Bfo;
+   Thrd->Po = Conn->Bfo;
    }
 }
 
@@ -343,7 +346,7 @@ if (fh==0) {
       }
    else errno = EACCES;
    }
-((T_cloninfo *)Conn)->Po = Conn->Bfo;
+((T_threadinfo *)Conn)->Po = Conn->Bfo;
 if (fh>0) {
    CAS_nPrintf(Conn,Rhf,C,fs,F);
    sendToClient(Conn,NULL,0);
@@ -355,7 +358,7 @@ if (fh>0) {
       } while (1);
    #else
    do {
-      s = sendfile(((T_cloninfo *)Conn)->sk,fh,NULL,fs);
+      s = sendfile(((T_threadinfo *)Conn)->sk,fh,NULL,fs);
       fs -= s;
       } while (fs>0);
    close(fh);
@@ -367,7 +370,7 @@ else CAS_nPrintf(Conn,"%s%s",CAS_Srvinfo.Rh[1],strerror(errno));
 void CAS_sendContentToClient(CAS_srvconn_t *Conn, char *Nft, char *Rhf, void *Buf, int siz) {
 char *C;
 C = searchContentType(Nft);
-((T_cloninfo *)Conn)->Po = Conn->Bfo;
+((T_threadinfo *)Conn)->Po = Conn->Bfo;
 if (*C!='?') {
    CAS_nPrintf(Conn,Rhf,C,siz,Nft);
    sendToClient(Conn,NULL,0);
@@ -382,13 +385,13 @@ char *Bo,*Pc;
 int r;
 Pc = Conn->Pct;
 inet_ntop(CAS_Srvinfo.af,Conn->Ipc,Pc,INET6_ADDRSTRLEN);
-((T_cloninfo *)Conn)->Po = Conn->Bfo;
+((T_threadinfo *)Conn)->Po = Conn->Bfo;
 localtime_r(&Conn->uts,&Tim);
 CAS_nPrintf(Conn,CAS_Srvinfo.Rh[1]);
-Bo = ((T_cloninfo *)Conn)->Po;
+Bo = ((T_threadinfo *)Conn)->Po;
 CAS_nPrintf(Conn,"%d/%02d/%02d %02d:%02d %s %s\n",Tim.tm_year+1900,Tim.tm_mon+1,Tim.tm_mday,Tim.tm_hour,Tim.tm_min,Pc,Ms);
 #ifdef _Release_application_server
-r = write(Othinf.err,Bo,strlen(Bo));
+r = write(Srvcfg.err,Bo,strlen(Bo));
 #else
 fputs(Bo,stderr);
 #endif
@@ -400,7 +403,7 @@ char *P, *S, **Out;
 int k;
 if (CAS_Srvinfo.Rh==NULL) {
    k = 0;
-   P = Othinf.Cfg;
+   P = Srvcfg.Pcfg;
    do {
       if (memcmp(P,Ht,4)!=0) break;
       k++;
@@ -412,7 +415,7 @@ if (CAS_Srvinfo.Rh==NULL) {
    }
 Out = CAS_Srvinfo.Rh;
 k = 0;
-P = S = Othinf.Cfg;
+P = S = Srvcfg.Pcfg;
 do {
    while (isspace(*P)) P++;
    if (memcmp(P,Ht,4)!=0) break;
@@ -427,73 +430,68 @@ strcat(Srvcfg.Herr,"- ");
 CAS_Srvinfo.Rh[1] = Srvcfg.Herr;
 }
 
-static void closeSocket(T_cloninfo *Clon) {
+static void closeSocket(T_threadinfo *Thrd) {
+int s;
+s = Thrd->sk;
+Thrd->sk = 0;
 #ifdef _Secure_application_server
-if (Clon->cs>0) {
-   SSL_shutdown(Clon->Ss);
-   SSL_free(Clon->Ss);
+if (Thrd->cs>0) {
+   SSL_shutdown(Thrd->Ss);
+   SSL_free(Thrd->Ss);
    }
 #else
-shutdown(Clon->sk,SHUT_WR);
+shutdown(s,SHUT_WR);
 #endif
-close(Clon->sk);
-Clon->sk = Clon->rq = 0;
+close(s);
+Thrd->rq = 0;
 }
 
 #ifdef _Release_application_server
 
 static void errorMessage(char *Ms, int er) {
-T_cloninfo *Clon;
 char *Me;
 Me = er ? strerror(er) : "";
-sprintf(Othinf.Buf,"\nInternal error: %s, %s\n",Ms,Me);
-fputs(Othinf.Buf,stderr);
-if (Othinf.err>0) er = write(Othinf.err,Othinf.Buf,strlen(Othinf.Buf));
-if (Lstclon.Cl) {
-   for (Clon=Lstclon.Cl; Clon->Sb; Clon++) {
-       if (Clon->pd>0) kill(Clon->pd,SIGKILL);
-       }
-   }
+sprintf(Srvcfg.Buf,"\nInternal error: %s, %s\n",Ms,Me);
+fputs(Srvcfg.Buf,stderr);
+if (Srvcfg.err>0) er = write(Srvcfg.err,Srvcfg.Buf,strlen(Srvcfg.Buf));
 exit(1);
 }
 
 static void processSignal(int snl) {
-int c;
+long long t;
 char *Me,*P;
 struct tm Tim;
-T_cloninfo *Clon;
+int c;
+T_threadinfo *Thrd;
 if (snl==SIGCONT) return;
-if (snl==SIGCHLD) {
-   while (waitpid(-1,NULL,__WALL|WNOHANG)>0) ;
-   return;
-   }
-c = getpid();
-for (Clon=Lstclon.Cl; Clon->Sb; Clon++)
-    if (Clon->pd==c) break;
-if (Clon->Sb==NULL) exit(1);
-if (snl==SIGALRM) if (Clon->Co.tmo==0) {
-   Clon->Co.tmo++;
-   return;
-   }
 Me = (char *)sys_siglist[snl];
-CAS_nPrintf(&Clon->Co,Me);
-sendToClient(&Clon->Co,NULL,0);
-closeSocket(Clon);
-localtime_r(&Clon->Co.uts,&Tim);
-for (P=Clon->Pm; *P; ) {
+if (snl==SIGALRM) {
+   return;
+   }
+else {
+   t = pthread_self();
+   for (Thrd=Lsthread.Cl; Thrd->xc; Thrd++)
+       if (Thrd->id==t) break;
+   if (Thrd->xc==0) errorMessage(Me,0);
+   }
+CAS_nPrintf(&Thrd->Co,Me);
+sendToClient(&Thrd->Co,NULL,0);
+closeSocket(Thrd);
+localtime_r(&Thrd->Co.uts,&Tim);
+for (P=Thrd->Pm; *P; ) {
     P = CAS_endOfString(P,1);
     P = CAS_endOfString(P,1);
     }
-c = (P - Clon->Pm) + 4;
-P = Clon->Bf + Srvcfg.lbf - c;
-memmove(P,Clon->Pm,c);
-Clon->Pm = P;
-Me = Clon->Bf + sprintf(Clon->Bf,"%d/%02d/%02d %d:%02d %s\n",Tim.tm_year+1900,
+t = (P - Thrd->Pm) + 4;
+P = Thrd->Bf + (Srvcfg.lbf - t);
+memmove(P,Thrd->Pm,t);
+Thrd->Pm = P;
+Me = Thrd->Bf + sprintf(Thrd->Bf,"%d/%02d/%02d %d:%02d %s\n",Tim.tm_year+1900,
                         Tim.tm_mon+1,Tim.tm_mday,Tim.tm_hour,Tim.tm_min,Me);
 while (*P) {
       Me += sprintf(Me," %s=",P);
       P = CAS_endOfString(P,1);
-      while (c=*P++) {
+      while (c=(unsigned char)*P++) {
             if (c==' ') {
                *Me++ = '+';
                continue;
@@ -502,21 +500,15 @@ while (*P) {
                *Me++ = c;
                continue;
                }
-            Me += sprintf(Me,"%2x",(unsigned)c);
+            Me += sprintf(Me,"%2x",c);
             }
-      *P++;
       }
 *Me++ = '\n';
-c = write(Othinf.err,Clon->Bf,Me-Clon->Bf);
-printf("e %d s %s\n",errno,strerror(errno));
-#ifdef _Secure_application_server
-if (Secinf.Ctx) {
-   SSL_CTX_free(Secinf.Ctx);
-   Secinf.Ctx = NULL;
-   }
-#endif
-Clon->pd = Clon->rq = Clon->sk = 0;
-exit(1);
+c = write(Srvcfg.err,Thrd->Bf,Me-Thrd->Bf);
+t = Thrd->id;
+Thrd->id = Thrd->rq = 0;
+if (snl==SIGALRM) { }
+   else pthread_exit(NULL);
 }
 
 #else
@@ -527,9 +519,6 @@ exit(0);
 }
 
 static void processSignal(int snl) {
-if (snl==SIGCHLD)
-   while (waitpid(-1,NULL,__WALL|WNOHANG)>0) ;
-if (snl==SIGALRM) Lstclon.Cl[0].Co.tmo = 1;
 }
 
 #endif
@@ -537,17 +526,17 @@ if (snl==SIGALRM) Lstclon.Cl[0].Co.tmo = 1;
 static void nPuts(CAS_srvconn_t *Conn, char *Buf, int len) {
 int d;
 do {
-   d = Conn->Bft - ((T_cloninfo *)Conn)->Po;
+   d = Conn->Bft - ((T_threadinfo *)Conn)->Po;
    if (d>len) break;
-   memcpy(((T_cloninfo *)Conn)->Po,Buf,d);
-   ((T_cloninfo *)Conn)->Po += d;
+   memcpy(((T_threadinfo *)Conn)->Po,Buf,d);
+   ((T_threadinfo *)Conn)->Po += d;
    sendToClient(Conn,NULL,0);
    Buf += d;
    len -= d;
    } while (1);
 if (len>0) {
-   memcpy(((T_cloninfo *)Conn)->Po,Buf,len);
-   ((T_cloninfo *)Conn)->Po += len;
+   memcpy(((T_threadinfo *)Conn)->Po,Buf,len);
+   ((T_threadinfo *)Conn)->Po += len;
    }
 }
 
@@ -683,7 +672,7 @@ while (*Fmt) {
       }
 va_end(Ap);
 v = Conn->Pct - Conn->Bft;
-if (((T_cloninfo *)Conn)->mt<v) ((T_cloninfo *)Conn)->mt = v;
+if (((T_threadinfo *)Conn)->mt<v) ((T_threadinfo *)Conn)->mt = v;
 Conn->Pct = Conn->Bft + 1;
 }
 
@@ -694,6 +683,7 @@ char *Fpv,*Pb,*Pe,Cnv[28],f;
 int v,w;
 va_start(Ap,Fmt);
 Pb = Pe = Conn->Pct;
+errno = ENOMEM;
 while (f=*Fmt++) {
       if (Pe+3>=Conn->Pet) return NULL;
       if (f!='%') {
@@ -756,7 +746,7 @@ while (f=*Fmt++) {
          }
       }
 va_end(Ap);
-*Pe++ = 0;
+*Pe++ = errno = 0;
 Conn->Pct = Pe;
 return Pb;
 }
@@ -816,20 +806,21 @@ return 1;
 
 double CAS_getTime(CAS_srvconn_t *Conn) {
 struct timeval Tmv;
-T_cloninfo *Clon;
+T_threadinfo *Thrd;
 gettimeofday(&Tmv,NULL);
-Clon = (T_cloninfo *)Conn;
+Thrd = (T_threadinfo *)Conn;
 if (Conn->uts==0) {
    Conn->uts = Tmv.tv_sec;
-   Clon->us = Tmv.tv_usec;
+   Thrd->us = Tmv.tv_usec;
    return 0;
    }
-return ((double)Tmv.tv_usec - Clon->us) / 1000000.0 + Tmv.tv_sec - Conn->uts;
+return ((double)Tmv.tv_usec - Thrd->us) / 1000000.0 + Tmv.tv_sec - Conn->uts;
 }
 
 char *CAS_convertString(CAS_srvconn_t *Conn, char *Str, char op) {
 char *Pb, *Pe, c;
 Pb = Pe = Conn->Pct;
+errno = ENOMEM;
 if (op=='U') while (c=*Str++) {
    if (Pe+4>=Conn->Pet) return NULL;
    if (isalnum(c) || (c=='_')) {
@@ -862,7 +853,7 @@ if (op=='H') while (c=*Str++) {
                break;
           }
    }
-*Pe++ = 0;
+*Pe++ = errno = 0;
 Conn->Pct = Pe;
 return Pb;
 }
@@ -872,21 +863,21 @@ time_t ti;
 int k,d;
 d = socket(CAS_Srvinfo.af,SOCK_STREAM,IPPROTO_TCP);
 if (d<0) errorMessage("socket",errno);
-inet_pton(CAS_Srvinfo.af,Othinf.Buf,&Othinf.San);
+inet_pton(CAS_Srvinfo.af,Srvcfg.Buf,&Srvcfg.San);
 fprintf(stderr,"Checking port %d, %s\n",p,M);
 if (CAS_Srvinfo.af==AF_INET) {
-   Othinf.Sao.sin_family = CAS_Srvinfo.af;
-   Othinf.Sao.sin_port = htons(p);
+   Srvcfg.Sao.sin_family = CAS_Srvinfo.af;
+   Srvcfg.Sao.sin_port = htons(p);
    }
 else {
-   Othinf.San.sin6_family = CAS_Srvinfo.af;
-   Othinf.San.sin6_port = htons(p);
+   Srvcfg.San.sin6_family = CAS_Srvinfo.af;
+   Srvcfg.San.sin6_port = htons(p);
    }
 k = 1;
 setsockopt(d,SOL_SOCKET,SO_REUSEADDR,&k,sizeof(k));
 k = 0;
 ti = time(NULL);
-while (bind(d,(struct sockaddr *)&Othinf.San,sizeof(Othinf.San))<0) {
+while (bind(d,(struct sockaddr *)&Srvcfg.San,sizeof(Srvcfg.San))<0) {
       if (time(NULL)-ti>Srvcfg.Trcv.tv_sec) k = ETIMEDOUT;
       if (errno==EADDRINUSE) k = errno;
       if (k!=0) errorMessage("bind",k);
@@ -899,14 +890,14 @@ static int initServer(void) {
 CAS_srvconn_t *Conn;
 char *Ms;
 int k;
-Othinf.Rlim.rlim_cur = Othinf.Rlim.rlim_max = Srvcfg.stks * sizeof(int);
-setrlimit(RLIMIT_STACK,&Othinf.Rlim);
+Srvcfg.Rlim.rlim_cur = Srvcfg.Rlim.rlim_max = Srvcfg.stks * sizeof(int);
+setrlimit(RLIMIT_STACK,&Srvcfg.Rlim);
 explodeHeaders();
 #ifdef _Release_application_server
-sprintf(Othinf.Buf,"%s.err",Othinf.Npg);
-k = open(Othinf.Buf,O_APPEND|O_CREAT|O_WRONLY|O_DSYNC,0600);
+sprintf(Srvcfg.Buf,"%s.err",Srvcfg.Nprg);
+k = open(Srvcfg.Buf,O_APPEND|O_CREAT|O_WRONLY|O_DSYNC,0600);
 if (k<0) errorMessage("errLog",errno);
-Othinf.nls = 1;
+Srvcfg.nls = 1;
 #else
 k = 0;
 #endif
@@ -915,8 +906,8 @@ Ms = "admin and internet (unsecure) requests";
 #else
 Ms = "admin and internet requests";
 #endif
-Othinf.Pof[0].fd = checkingPort(Srvcfg.Lpo[0],Lstclon.nc,Ms);
-Othinf.Pof[0].events = POLLIN;
+Srvcfg.Pof[0].fd = checkingPort(Srvcfg.Lpo[0],Lsthread.nc,Ms);
+Srvcfg.Pof[0].events = POLLIN;
 return k;
 }
 
@@ -962,66 +953,63 @@ va_end(Prms);
 return Cfg;
 }
 
-static void readConfig(char *Npg) {
+static void *readConfig(void *Npg) {
 static char Ecf[] = "readConfig";
-T_cloninfo *Clon;
+T_threadinfo *Thrd;
 int n,s;
 char *Ps;
 if (Npg) {
-   Othinf.Npg = Npg;
-   if (Ps=strrchr(Othinf.Npg,'/')) Othinf.Npg = Ps + 1;
-   sprintf(Srvcfg.Ncfg,"%s.cfg",Othinf.Npg);
+   Srvcfg.Nprg = Npg;
+   if (Ps=strrchr(Srvcfg.Nprg,'/')) Srvcfg.Nprg = Ps + 1;
+   sprintf(Srvcfg.Ncfg,"%s.cfg",Srvcfg.Nprg);
    #ifdef _Secure_application_server
-   sprintf(Secinf.Nkey,"%s.key",Othinf.Npg);
+   sprintf(Secinf.Nkey,"%s.key",Srvcfg.Nprg);
    #endif
    }
 else {
    #ifdef _Secure_application_server
    SSL_CTX_free(Secinf.Ctx);
    #endif
-   for (Clon=Lstclon.Cl; Clon->Sb; Clon++)
-       free(Clon->Bf);
-   free(Othinf.Cfg);
+   for (Thrd=Lsthread.Cl; Thrd->xc; Thrd++)
+       free(Thrd->Bf);
+   free(Srvcfg.Pcfg);
    }
-Othinf.Cfg = Ps = CAS_loadTextFile(Srvcfg.Ncfg);
+Srvcfg.Pcfg = Ps = CAS_loadTextFile(Srvcfg.Ncfg);
 Ps = strstr(Ps,"- Server ");
 Ps = strchr(Ps,'\n');
 Ps = scanConfig(Ps,"sd",&Srvcfg.Pswd,&n);
 Srvcfg.lpw = strlen(Srvcfg.Pswd);
 if (n==4) {
    CAS_Srvinfo.af = AF_INET;
-   Srvcfg.Psa = &Othinf.Sao.sin_addr.s_addr;
+   Srvcfg.Psa = &Srvcfg.Sao.sin_addr.s_addr;
    Srvcfg.lsa = 4;
    }
 else {
    CAS_Srvinfo.af = AF_INET6;
-   Srvcfg.Psa = Othinf.San.sin6_addr.s6_addr;
+   Srvcfg.Psa = Srvcfg.San.sin6_addr.s6_addr;
    Srvcfg.lsa = 16;
    }
 Ps = scanConfig(Ps,"aa",Srvcfg.Psa,Srvcfg.Lhst);
 Ps = scanConfig(Ps,"dd",Srvcfg.Lpo,Srvcfg.Lpo+1);
-Ps = scanConfig(Ps,"dtddddtdddd",&n,&Srvcfg.Tpro.it_value.tv_sec,&s,&Srvcfg.sBfi,&Srvcfg.sBfo,&Srvcfg.sBft,
-                &Srvcfg.Trcv.tv_sec,&Srvcfg.norp,&CAS_Srvinfo.fs,&CAS_Srvinfo.se,&CAS_Srvinfo.ns);
+Ps = scanConfig(Ps,"ddddddtdddd",&n,&Srvcfg.pto,&s,&Srvcfg.sBfi,&Srvcfg.sBfo,&Srvcfg.sBft,&Srvcfg.Trcv.tv_sec,
+                &Srvcfg.norp,&CAS_Srvinfo.fs,&CAS_Srvinfo.se,&CAS_Srvinfo.ns);
 if (CAS_Srvinfo.fs>0)
    CAS_Srvinfo.fs = (CAS_Srvinfo.fs + 1023) & ~1023;
-Srvcfg.Tpro.it_interval.tv_sec = 1;
 #ifdef _Secure_application_server
 readCertificate();
 X509_free(Secinf.Ctf);
 RSA_free(Secinf.Rsa);
 #endif
-if (Lstclon.nc==0) {
+if (Lsthread.nc==0) {
    #ifndef _Release_application_server
    n = 1;
    #endif
-   Lstclon.nc = n;
-   Srvcfg.stks = ((s + 1023) & ~1023) / sizeof(int);
-   Lstclon.Cl = calloc(n+1,sizeof(T_cloninfo));
-   if (Lstclon.Cl==NULL) errorMessage(Ecf,errno);
-   for (s=0,Clon=Lstclon.Cl; s<n; s++,Clon++) {
-       Clon->Sb = calloc(Srvcfg.stks,sizeof(int));
-       if (Clon->Sb==NULL) errorMessage(Ecf,errno);
-       }
+   Lsthread.nc = n;
+   Srvcfg.stks = (s + 1023) & ~1023;
+   Lsthread.Cl = calloc(n+1,sizeof(T_threadinfo));
+   if (Lsthread.Cl==NULL) errorMessage(Ecf,errno);
+   for (s=0,Thrd=Lsthread.Cl; s<n; s++,Thrd++)
+       Thrd->xc++;
    }
 Srvcfg.sBfi = (Srvcfg.sBfi + 1023) & ~1023;
 if (Srvcfg.norp>0) {
@@ -1032,9 +1020,9 @@ if (CAS_Srvinfo.ss>0) Srvcfg.sBft += CAS_Srvinfo.ss + 40;
 Srvcfg.sBfo = (Srvcfg.sBfo + 1023) & ~1023;
 Srvcfg.sBft = (Srvcfg.sBft + 1023) & ~1023;
 Srvcfg.lbf = Srvcfg.sBfi + Srvcfg.sBfo + Srvcfg.sBft;
-if (Lstclon.nc>0) for (Clon=Lstclon.Cl; Clon->Sb; Clon++) {
-   Clon->Bf = calloc(Srvcfg.lbf,1);
-   if (Clon->Bf==NULL) errorMessage(Ecf,errno);
+if (Lsthread.nc>0) for (Thrd=Lsthread.Cl; Thrd->xc; Thrd++) {
+   Thrd->Bf = calloc(Srvcfg.lbf,1);
+   if (Thrd->Bf==NULL) errorMessage(Ecf,errno);
    }
 if (CAS_Srvinfo.cnfg) {
    Ps = strstr(Ps,"- User ");
@@ -1042,46 +1030,45 @@ if (CAS_Srvinfo.cnfg) {
    while (isspace(*Ps)) Ps++;
    CAS_Srvinfo.cnfg(Ps);
    }
-if (CAS_Srvinfo.se>0) {
-   s = Srvcfg.Tpro.it_value.tv_sec * 2 + 1;
-   if (CAS_Srvinfo.se<s) CAS_Srvinfo.se = s;
-   }
+return NULL;
 }
 
-static void processCommand(char *Cmd) {
+static void processMessage(char *Cmd) {
 time_t ti;
 int p,d;
-sprintf(Othinf.Buf,"%s %s",Cmd,Srvcfg.Pswd);
+sprintf(Srvcfg.Buf,"%s %s",Cmd,Srvcfg.Pswd);
 d = socket(CAS_Srvinfo.af,SOCK_STREAM,IPPROTO_TCP);
 if (d<0) errorMessage("",errno);
 p = Srvcfg.Lpo[0];
 if (CAS_Srvinfo.af==AF_INET) {
-   Othinf.Sao.sin_family = CAS_Srvinfo.af;
-   Othinf.Sao.sin_port = htons(p);
-   memcpy(&Othinf.Sao.sin_addr.s_addr,Srvcfg.Lhst,4);
+   Srvcfg.Sao.sin_family = CAS_Srvinfo.af;
+   Srvcfg.Sao.sin_port = htons(p);
+   memcpy(&Srvcfg.Sao.sin_addr.s_addr,Srvcfg.Lhst,4);
    }
 else {
-   Othinf.San.sin6_family = CAS_Srvinfo.af;
-   Othinf.San.sin6_port = htons(p);
-   memcpy(Othinf.San.sin6_addr.s6_addr,Srvcfg.Lhst,16);
+   Srvcfg.San.sin6_family = CAS_Srvinfo.af;
+   Srvcfg.San.sin6_port = htons(p);
+   memcpy(Srvcfg.San.sin6_addr.s6_addr,Srvcfg.Lhst,16);
    }
 ti = time(NULL);
 p = 0;
-while (connect(d,(struct sockaddr *)&Othinf.San,sizeof(Othinf.San))<0) {
-      if (time(NULL)-ti>Srvcfg.Trcv.tv_sec) p = ETIMEDOUT;
-      if (errno==ECONNREFUSED) p = errno;
-      if (p!=0) errorMessage("connect",p);
-      sleep(1);
+do {
+   if (connect(d,(struct sockaddr *)&Srvcfg.San,sizeof(Srvcfg.San))==0)
+      break;
+   if (time(NULL)-ti>Srvcfg.Trcv.tv_sec) {
+      p = ETIMEDOUT;
+      break;
       }
-send(d,Othinf.Buf,strlen(Othinf.Buf),0);
-Srvcfg.Trcv.tv_sec += Srvcfg.Tpro.it_value.tv_sec;
+   } while (1);
+if (p!=0) errorMessage("connect",p);
+send(d,Srvcfg.Buf,strlen(Srvcfg.Buf),0);
 setsockopt(d,SOL_SOCKET,SO_RCVTIMEO,&Srvcfg.Trcv,sizeof(Srvcfg.Trcv));
 do {
-   memset(Othinf.Buf,0,sizeof(Othinf.Buf));
-   recv(d,Othinf.Buf,sizeof(Othinf.Buf)-1,0);
-   if (Othinf.Buf[0]==0) break;
+   memset(Srvcfg.Buf,0,sizeof(Srvcfg.Buf));
+   recv(d,Srvcfg.Buf,sizeof(Srvcfg.Buf)-1,0);
+   if (Srvcfg.Buf[0]==0) break;
    p++;
-   fprintf(stderr,"%s",Othinf.Buf);
+   fprintf(stderr,"%s",Srvcfg.Buf);
    } while (1);
 if (p==0) perror("No response");
 close(d);
@@ -1093,7 +1080,7 @@ if (P=From) {
    P = CAS_endOfString(From,1);
    P = CAS_endOfString(P,1);
    }
-else P = ((T_cloninfo *)Conn)->Pm;
+else P = ((T_threadinfo *)Conn)->Pm;
 return *P ? P : NULL;
 }
 
@@ -1103,7 +1090,7 @@ if (From) {
    P = From;
    P = CAS_endOfString(P,1);
    }
-else P = ((T_cloninfo *)Conn)->Pm;
+else P = ((T_threadinfo *)Conn)->Pm;
 do {
    Q = CAS_endOfString(P,1);
    if (strcmp(P,Name)==0) return Q;
@@ -1129,13 +1116,13 @@ if (From) {
    P = CAS_endOfString(From,1);
    P = CAS_endOfString(P,1);
    }
-else P = ((T_cloninfo *)Conn)->Hm;
+else P = ((T_threadinfo *)Conn)->Hm;
 return *P ? P : NULL;
 }
 
 char *CAS_getHeaderValue(CAS_srvconn_t *Conn, char *Name) {
 char *P,*Q;
-P = ((T_cloninfo *)Conn)->Hm;
+P = ((T_threadinfo *)Conn)->Hm;
 do {
    Q = CAS_endOfString(P,1);
    if (strcasecmp(P,Name)==0) return Q;
@@ -1150,12 +1137,12 @@ static struct { char *Eol, *Mna, *Mcl, *Clb, *Mrj, *Mhd, *Ctn, *Zzz, *Clv; } Tex
        "%s Missing end of headers", "%s Content-type not allowed",
        NULL, "Content-length" } ;
 
-static char *parseGetParams(T_cloninfo *Clon, char *Pm) {
+static char *parseGetParams(T_threadinfo *Thrd, char *Pm) {
 char *Ds,W[3],c;
 int v,s;
 for (Ds=Pm; c=*Ds; Ds++) if (isspace(c)) break;
 if (c) Ds[0] = Ds[1] = 0;
-Ds = Clon->Pm;
+Ds = Thrd->Pm;
 s = 0;
 do {
    if (*Pm==0) break;
@@ -1182,16 +1169,16 @@ do {
    } while (1);
 *Ds++ = 0;
 *Ds++ = 0;
-s = Ds - Clon->Bf;
-if (Clon->mi<s) Clon->mi = s;
-if (Ds>Clon->Ei) Clon->Ei = Ds;
+s = Ds - Thrd->Bf;
+if (Thrd->mi<s) Thrd->mi = s;
+if (Ds>Thrd->Ei) Thrd->Ei = Ds;
 return Ds;
 }
 
-static char *parseHeaderMessages(T_cloninfo *Clon, char *Hm) {
+static char *parseHeaderMessages(T_threadinfo *Thrd, char *Hm) {
 int k,c;
 char *Ds;
-Ds = Clon->Hm;
+Ds = Thrd->Hm;
 while (Hm) {
       while (isspace(*Hm)) Hm++;
       if (*Hm==0) break;
@@ -1216,16 +1203,16 @@ while (Hm) {
       }
 *Ds++ = 0;
 *Ds++ = 0;
-k = Ds - Clon->Bf;
-if (Clon->mi<k) Clon->mi = k;
-if (Ds>Clon->Ei) Clon->Ei = Ds;
+k = Ds - Thrd->Bf;
+if (Thrd->mi<k) Thrd->mi = k;
+if (Ds>Thrd->Ei) Thrd->Ei = Ds;
 return Ds;
 }
 
-static int isGetMethod(T_cloninfo *Clon) {
+static int isGetMethod(T_threadinfo *Thrd) {
 char *Bi,*Hm;
-Bi = Clon->Bf;
-if (CAS_Srvinfo.rwrl) CAS_Srvinfo.rwrl(&Clon->Co);
+Bi = Thrd->Bf;
+if (CAS_Srvinfo.rwrl) CAS_Srvinfo.rwrl(&Thrd->Co);
 Bi[1] = Bi[2] = 0;
 Bi += 5;
 if (Bi[0]!='?') {
@@ -1233,8 +1220,8 @@ if (Bi[0]!='?') {
    }
 else Bi++;
 if (Hm=strpbrk(Bi,Texts.Eol)) *Hm++ = 0;
-Clon->Hm = parseGetParams(Clon,Bi);
-if (Hm) parseHeaderMessages(Clon,Hm);
+Thrd->Hm = parseGetParams(Thrd,Bi);
+if (Hm) parseHeaderMessages(Thrd,Hm);
 return 200;
 }
 
@@ -1278,11 +1265,11 @@ do {
 return Bi + 1;
 }
 
-static int isLoadMethod(T_cloninfo *Clon, int l) {
+static int isLoadMethod(T_threadinfo *Thrd, int l) {
 char *Bi,*Pp,*Pr;
 int F,c,s,m,w;
 if (CAS_Srvinfo.fs==0) return -1;
-Bi = Clon->Bf;
+Bi = Thrd->Bf;
 if (Bi[6]!='?') return 404;
 Pp = searchBody(Bi,&c);
 if (c<0) return c;
@@ -1292,20 +1279,20 @@ Pr[1] = Pr[2] = 0;
 Pr = strpbrk(Bi,Texts.Eol);
 Bi[1] = Bi[2] = 0;
 Bi += 7;
-Clon->Hm = parseGetParams(Clon,Bi);
-if (Clon->Pm[0]==0) return 404;
-parseHeaderMessages(Clon,Pr);
-c = contentLength(&Clon->Co,CAS_Srvinfo.fs);
+Thrd->Hm = parseGetParams(Thrd,Bi);
+if (Thrd->Pm[0]==0) return 404;
+parseHeaderMessages(Thrd,Pr);
+c = contentLength(&Thrd->Co,CAS_Srvinfo.fs);
 if (c<0) return c;
-if (CAS_Srvinfo.post) if (CAS_Srvinfo.post(&Clon->Co,c,s)==0)
+if (CAS_Srvinfo.post) if (CAS_Srvinfo.post(&Thrd->Co,c,s)==0)
    return -4;
-Pr = Clon->Co.Ufn;
-CAS_convertBinaryToName(Pr,3,Clon-Lstclon.Cl);
+Pr = Thrd->Co.Ufn;
+CAS_convertBinaryToName(Pr,3,Thrd-Lsthread.Cl);
 F = open(Pr,O_WRONLY|O_CREAT|O_TRUNC,0600);
 s = s > 0 ? write(F,Pp,s) : 0;
-Pr = Clon->Co.Bfo;
+Pr = Thrd->Co.Bfo;
 l = Srvcfg.norp;
-m = Clon->Co.Pet - Pp;
+m = Thrd->Co.Pet - Pp;
 while (s<c) {
       if (l<Srvcfg.norp) {
          close(F);
@@ -1314,7 +1301,7 @@ while (s<c) {
          }
       l = c - s;
       if (l>m) l = m;
-      l = recvFromClient(Clon,Pr,l);
+      l = recvFromClient(Thrd,Pr,l);
       w = write(F,Pr,l);
       s += l;
       }
@@ -1322,11 +1309,11 @@ close(F);
 return 200;
 }
 
-static int isPostMethod(T_cloninfo *Clon, int l) {
+static int isPostMethod(T_threadinfo *Thrd, int l) {
 char *Bi,*Pp,*Pr;
 int c,s,m;
 if (Srvcfg.norp==0) return -1;
-Bi = Clon->Bf;
+Bi = Thrd->Bf;
 Pp = searchBody(Bi,&c);
 if (c<0) return c;
 for (Pr=Pp-1; isspace(*Pr); Pr--) ;
@@ -1334,21 +1321,21 @@ Pr[1] = Pr[2] = 0;
 Pr = strpbrk(Bi,Texts.Eol);
 Bi[1] = Bi[2] = 0;
 Bi += 3;
-Pr = parseHeaderMessages(Clon,Pr);
+Pr = parseHeaderMessages(Thrd,Pr);
 s = strlen(Pp) + 1;
 memmove(Pr,Pp,s);
 Pr[s+1] = 0;
-Clon->Pm = Pp = Pr;
-l = Clon->Co.Pet - Pp - 4;
-m = (Clon->Co.Bfo - Pp) * 3 - 4;
+Thrd->Pm = Pp = Pr;
+l = Thrd->Co.Pet - Pp - 4;
+m = (Thrd->Co.Bfo - Pp) * 3 - 4;
 if (l>m) l = m;
 m = strlen(Pp);
-c = contentLength(&Clon->Co,l);
+c = contentLength(&Thrd->Co,l);
 if (c<0) return c;
 if (CAS_Srvinfo.post) if (c>m)
-   if (CAS_Srvinfo.post(&Clon->Co,c,m)==0)
+   if (CAS_Srvinfo.post(&Thrd->Co,c,m)==0)
       return -4;
-if (Pr=CAS_getHeaderValue(&Clon->Co,"Content-type"))
+if (Pr=CAS_getHeaderValue(&Thrd->Co,"Content-type"))
    if (strcasecmp(Pr,"application/x-www-form-urlencoded")!=0)
       return -6;
 s = strlen(Pp);
@@ -1360,70 +1347,71 @@ while (s<c) {
          return l > 6 ? -l : -7;
          }
       l = c - s;
-      l = recvFromClient(Clon,Pr,l);
+      l = recvFromClient(Thrd,Pr,l);
       Pr += l;
       s += l;
       }
 Pp[s] = Pp[s+1] = 0;
-if (Pr) Pr = parseGetParams(Clon,Pp);
+if (Pr) Pr = parseGetParams(Thrd,Pp);
 return 200;
 }
 
-static int receiveRequest(T_cloninfo *Clon) {
+static int receiveRequest(T_threadinfo *Thrd) {
 static char **Perr = (char **)&Texts;
-int k;
+int k,c;
 char *Bi,*Me;
-int (*PostOrLoad)(T_cloninfo *, int);
-CAS_getTime(&Clon->Co);
-Clon->Co.Bfi = Clon->Ei = Bi = Clon->Bf;
+int (*PostOrLoad)(T_threadinfo *, int);
+CAS_getTime(&Thrd->Co);
+Thrd->Co.Bfi = Thrd->Ei = Bi = Thrd->Bf;
 memset(Bi,0,Srvcfg.lbf);
-Clon->Co.Bfo = Clon->Po = Bi + Srvcfg.sBfi;
-Clon->Co.Bft = Clon->Co.Bfo + Srvcfg.sBfo;
-Clon->Co.Pct = Clon->Co.Bft + 1;
-Clon->Co.Pet = Clon->Co.Bft + Srvcfg.sBft;
-Clon->Pm = Clon->Hm = Bi + 3;
-if (memcmp(Clon->Co.Ipc,Srvcfg.Lhst,sizeof(Srvcfg.Lhst))!=0)
-   if (CAS_Srvinfo.acco) if (CAS_Srvinfo.acco(Clon->Co.Ipc)==0) {
-      abortConnection(&Clon->Co,"Connection refused");
+Thrd->Co.Bfo = Thrd->Po = Bi + Srvcfg.sBfi;
+Thrd->Co.Bft = Thrd->Co.Bfo + Srvcfg.sBfo;
+Thrd->Co.Pct = Thrd->Co.Bft + 1;
+Thrd->Co.Pet = Thrd->Co.Bft + Srvcfg.sBft;
+Thrd->Pm = Thrd->Hm = Bi + 3;
+if (memcmp(Thrd->Co.Ipc,Srvcfg.Lhst,sizeof(Srvcfg.Lhst))!=0)
+   if (CAS_Srvinfo.acco) if (CAS_Srvinfo.acco(Thrd->Co.Ipc)==0) {
+      abortConnection(&Thrd->Co,"Connection refused");
       return 0;
       }
 #ifdef _Secure_application_server
-if (Clon->cs>0) {
+if (Thrd->cs>0) {
    k = 1;
-   if (Clon->Ss=SSL_new(Secinf.Ctx)) {
-      SSL_set_fd(Clon->Ss,Clon->sk);
-      k = SSL_accept(Clon->Ss);
-      if (k<=0) SSL_free(Clon->Ss);
+   Thrd->Ss = SSL_new(Secinf.Ctx);
+   if (Thrd->Ss) {
+      SSL_set_fd(Thrd->Ss,Thrd->sk);
+      k = SSL_accept(Thrd->Ss);
+      if (k<=0) SSL_free(Thrd->Ss);
       }
    else k--;
    if (k<=0) {
-      Clon->cs = 0;
-      Me = secureError(Clon,"Accept");
-      abortConnection(&Clon->Co,Me);
+      Thrd->cs = 0;
+      Me = secureError(Thrd,"Accept");
+      abortConnection(&Thrd->Co,Me);
       return 0;
       }
    }
 #endif
-setsockopt(Clon->sk,SOL_SOCKET,SO_RCVTIMEO,&Srvcfg.Trcv,sizeof(Srvcfg.Trcv));
+setsockopt(Thrd->sk,SOL_SOCKET,SO_RCVTIMEO,&Srvcfg.Trcv,sizeof(Srvcfg.Trcv));
 k = 1;
-setsockopt(Clon->sk,SOL_TCP,TCP_NODELAY,&k,sizeof(k));
-k = recvFromClient(Clon,Clon->Bf,Srvcfg.lbf-4);
+setsockopt(Thrd->sk,SOL_TCP,TCP_NODELAY,&k,sizeof(k));
+k = recvFromClient(Thrd,Thrd->Bf,Srvcfg.lbf-4);
 Me = "Request timeout";
 #ifdef _Secure_application_server
-if (Bi[0]==0) Me = secureError(Clon,"Read");
+if (Bi[0]==0) Me = secureError(Thrd,"Read");
 #endif
 if (Bi[0]==0) {
-   abortConnection(&Clon->Co,Me);
+   abortConnection(&Thrd->Co,Me);
    return 0;
    }
-k = memcmp(Bi,"GET /",5);
+c = memcmp(Bi,"GET /",5);
 #ifdef _Secure_application_server
-if (Clon->cs==0) {
-   if (k==0) return redirectToHttps(Clon);
+if (Thrd->cs==0) {
+   if (c==0) return redirectToHttps(Thrd);
    return 404;
    }
 #endif
-if (k==0) return isGetMethod(Clon);
+if (c==0) return isGetMethod(Thrd);
 do {
    if (memcmp(Bi,"POST /",6)==0) {
       PostOrLoad = isPostMethod;
@@ -1435,22 +1423,22 @@ do {
       }
    return 404;
    } while (0);
-k = PostOrLoad(Clon,k);
+k = PostOrLoad(Thrd,k);
 if (k>0) return k;
 if (k<0) {
    k = -k;
    if (k<=6) {
       Me = Perr[k];
       if (k==3) {
-         Bi = CAS_getHeaderValue(&Clon->Co,Texts.Clv);
+         Bi = CAS_getHeaderValue(&Thrd->Co,Texts.Clv);
          k = atoi(Bi);
          }
       }
    else Me = "%s %d octets read";
-   Bi = Clon->Bf[0] == 'P' ? "POST:" : "LOAD:";
-   Me = CAS_sPrintf(&Clon->Co,Me,Bi,k);
+   Bi = Thrd->Bf[0] == 'P' ? "POST:" : "LOAD:";
+   Me = CAS_sPrintf(&Thrd->Co,Me,Bi,k);
    }
-abortConnection(&Clon->Co,Me);
+abortConnection(&Thrd->Co,Me);
 return 0;
 }
 
@@ -1465,17 +1453,15 @@ sigaction(snl,&Act,NULL);
 static void processRequest(CAS_srvconn_t *Conn) {
 char *Ei;
 int k;
-Ei = ((T_cloninfo *)Conn)->Ei;
+Ei = ((T_threadinfo *)Conn)->Ei;
 memset(Ei,0,Conn->Pet-Ei);
 if (Conn->Bfo>=Ei) {
    k = ((Ei - Conn->Bfi) + 1023) & ~1023;
    Ei = Conn->Bfi + k;
    if (Conn->Bfo>Ei)
-      ((T_cloninfo *)Conn)->Po = Conn->Bfo = Ei;
+      ((T_threadinfo *)Conn)->Po = Conn->Bfo = Ei;
    CAS_nPrintf(Conn,CAS_Srvinfo.Rh[0]);
-   setitimer(ITIMER_REAL,&Srvcfg.Tpro,NULL);
    CAS_Srvinfo.preq(Conn);
-   setitimer(ITIMER_REAL,&Srvcfg.Trst,NULL);
    if (CAS_Srvinfo.ss>0) CAS_updateSession(Conn);
    }
 else {
@@ -1484,127 +1470,112 @@ else {
    }
 }
 
-int CAS_serverMutex(CAS_srvconn_t *Conn, int32_t *Mtx, char op) {
-int s;
-if (op!='L') if (op!='R') return 0;
-if (Mtx==NULL) {
-   #ifdef _Release_application_server
-   ((T_cloninfo *)Conn)->rq = op == 'L' ? 'U' : 0;
-   kill(Othinf.pid,SIGCONT);
-   sigsuspend(&Othinf.omsk);
-   #endif
-   return 1;
-   }
-if (op=='L') {
-   while (1) {
-         if (__sync_bool_compare_and_swap(Mtx,1,0)) break;
-         while (syscall(SYS_futex,Mtx,FUTEX_WAIT|FUTEX_PRIVATE_FLAG,0,NULL,NULL,0)<0) ;
-         }
-   return 1;
-   }
-if (__sync_bool_compare_and_swap(Mtx,0,1))
-   syscall(SYS_futex,Mtx,FUTEX_WAKE|FUTEX_PRIVATE_FLAG,1,NULL,NULL,0);
-return 1;
-}
-
 #ifdef _Release_application_server
 
-static T_cloninfo *specialRequest(T_cloninfo *Clon, char req) {
-T_cloninfo *Wcln;
-for (; Clon->Sb; Clon++)
-    if (Clon->rq==req) break;
-if (Clon->Sb==NULL) return NULL;
-switch (req) {
-       case 'Z': Othinf.req = 'Z';
-                 break;
-       case 'C': readConfig(NULL);
-                 explodeHeaders();
-                 break;
-       case 'D': CAS_Srvinfo.data('R');
-                 CAS_Srvinfo.data('L');
-                 break;
-       case 'H': CAS_Srvinfo.html('R');
-                 CAS_Srvinfo.html('L');
-                 break;
+static T_threadinfo *specialRequest(T_threadinfo *Thrd, char req) {
+int k;
+for (k=0; Thrd->xc; Thrd++) {
+    if (req=='W') if (Thrd->rq=='D') {
+       Thrd->rq = 0;
+       continue;
        }
-if (req!='U')
-   CAS_nPrintf(&Clon->Co,"Ok server %s %d (release version) %s\n",Othinf.Npg,Othinf.pid,whichCommand(req));
-if (req=='W') {
-   sendToClient(&Clon->Co,NULL,0);
-   recv(Clon->sk,Clon->Bf,1020,0);
-   if (memcmp(Clon->Bf,"Ok data",7)==0) {
-      CAS_Srvinfo.data('R');
-      CAS_Srvinfo.data('L');
-      }
-   }
-kill(Clon->pd,SIGCONT);
-return Clon;
+    if (Thrd->rq!=req) continue;
+    if (req!='S') {
+       Thrd->rq = 0;
+       if (k>0) return Thrd;
+       }
+    k++;
+    switch (req) {
+           case 'Z': Srvcfg.req = 'Z';
+                     break;
+           case 'C': readConfig(NULL);
+                     explodeHeaders();
+                     break;
+           case 'D': CAS_Srvinfo.data('R');
+                     CAS_Srvinfo.data('L');
+                     break;
+           case 'H': CAS_Srvinfo.html('R');
+                     CAS_Srvinfo.html('L');
+                     break;
+           }
+    if (req!='S')
+       CAS_nPrintf(&Thrd->Co,"Ok server %s %d (release version) %s\n",Srvcfg.Nprg,getpid(),whichMessage(req));
+    if (req=='W') {
+       sendToClient(&Thrd->Co,NULL,0);
+       recv(Thrd->sk,Thrd->Bf,1020,0);
+       if (memcmp(Thrd->Bf,Okdt,7)==0) {
+          CAS_Srvinfo.data('R');
+          CAS_Srvinfo.data('L');
+          }
+       }
+    pthread_kill(Thrd->td,SIGCONT);
+    }
+return NULL;
 }
 
-static T_cloninfo *cloneAvailable(int ca) {
-T_cloninfo *Clon;
+static T_threadinfo *threadAvailable(int ca) {
+T_threadinfo *Thrd;
 int k,r;
 do {
-   Othinf.req = k = 0;
-   Clon = Lstclon.Cl;
-   for (; Clon->Sb; Clon++) {
-       if (Clon->sk==0) {
+   Srvcfg.req = k = 0;
+   Thrd = Lsthread.Cl;
+   for (; Thrd->xc; Thrd++) {
+       if (Thrd->sk==0) {
           if (ca) {
-             Othinf.req = 0;
-             return Clon;
+             Srvcfg.req = 0;
+             return Thrd;
              }
           continue;
           }
-       r = Clon->rq;
+       r = Thrd->rq;
        switch (r) {
               case 0: k |= 1; break;
-              case 'U': Othinf.req = 'U';
+              case 'S': Srvcfg.req = 'S';
                         k |= 2; break;
               case 'W': k |= 4; break;
               case 'C': k |= 8; break;
               case 'D': k |= 16; break;
               case 'H': k |= 32; break;
-              case 'Z': if (ca>0) {
-                           Clon->rq = 0;
-                           kill(Clon->pd,SIGCONT);
+              case 'Z': if (ca) {
+                           Thrd->rq = 0;
+                           pthread_kill(Thrd->td,SIGCONT);
                            }
                         else k |= 0x400;
                         break;
               }
        }
-   if (ca>0) {
+   if (ca) {
       if (k==0) continue;
       }
    else {
       if (k<=1) break;
       }
-   if ((k&0x7ffe)==0x400) Othinf.req = 'Z';
+   if ((k&0x7ffe)==0x400) Srvcfg.req = 'Z';
    if (k%2>0) {
-      if (ca>0 || (k>1)) {
-         for (r=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-             if (Clon->sk>0) if (Clon->rq==0)
+      if (ca || (k>1)) {
+         for (r=0,Thrd=Lsthread.Cl; Thrd->xc; Thrd++)
+             if (Thrd->sk>0) if (Thrd->rq==0)
                 r++;
          if (r>0) {
-            Othinf.psu++;
-            sigsuspend(&Othinf.omsk);
-            Othinf.psu--;
+            Srvcfg.psu++;
+            sigwaitinfo(&Srvcfg.Wmsk,NULL);
+            Srvcfg.psu--;
             }
          }
       continue;
       }
-   if (k & 2) for (Clon=Lstclon.Cl; Clon; Clon++)
-      Clon = specialRequest(Clon,'U');
-   Clon = Lstclon.Cl;
-   if (k & 4) specialRequest(Clon,'W');
-   if (k & 0x400) if (specialRequest(Clon,'Z')) {
-      Othinf.req = 'Z';
+   if (k & 2) specialRequest(Lsthread.Cl,'S');
+   if (k & 4) specialRequest(Lsthread.Cl,'W');
+   if (k & 0x400) {
+      specialRequest(Lsthread.Cl,'Z');
+      Srvcfg.req = 'Z';
       break;
       }
-   if (k & 8) specialRequest(Clon,'C');
-   if (k & 16) specialRequest(Clon,'D');
-   if (k & 32) specialRequest(Clon,'H');
+   if (k & 8) specialRequest(Lsthread.Cl,'C');
+   if (k & 16) specialRequest(Lsthread.Cl,'D');
+   if (k & 32) specialRequest(Lsthread.Cl,'H');
    if (ca>0) continue;
-   if (Othinf.req!='Z') Othinf.req = 0;
+   if (Srvcfg.req!='Z') if (Srvcfg.req!='S') Srvcfg.req = 0;
    break;
    } while (1);
 return NULL;
@@ -1612,43 +1583,26 @@ return NULL;
 
 static int performAdminRequest(CAS_srvconn_t *Conn) {
 char Ip[INET6_ADDRSTRLEN];
-T_cloninfo *Clon;
+T_threadinfo *Thrd;
 int s,k;
 k = checkAdminRequest(Conn);
 if (k==404) return k;
-Clon = (T_cloninfo *)Conn;
+Thrd = (T_threadinfo *)Conn;
 switch (k) {
        case 'S':
-            CAS_nPrintf(Conn,"Ok server %s %d -show\nClone Socket IP address\n",Othinf.Npg,Clon->pd);
-            for (s=0,Clon=Lstclon.Cl; Clon->Sb; s++,Clon++)
-                if (Clon->pd) if (Clon->sk) {
-                   inet_ntop(CAS_Srvinfo.af,&Clon->Co.Ipc,Ip,sizeof(Ip));
-                   CAS_nPrintf(Conn,"%5d %6d  %s\n",Clon->pd,Clon->sk,Ip);
+            CAS_nPrintf(Conn,"Ok server %s pid %d --show\nThread Socket IP address\n",Srvcfg.Nprg,getpid());
+            for (s=0,Thrd=Lsthread.Cl; Thrd->xc; s++,Thrd++)
+                if (Thrd->td) if (Thrd->sk) {
+                   inet_ntop(CAS_Srvinfo.af,&Thrd->Co.Ipc,Ip,sizeof(Ip));
+                   CAS_nPrintf(Conn,"%6d %6d  %s\n",s+1,Thrd->sk,Ip);
                    }
-            for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-                if (Clon->mi>s) s = Clon->mi;
+            for (s=0,Thrd=Lsthread.Cl; Thrd->xc; Thrd++)
+                if (Thrd->mi>s) s = Thrd->mi;
             CAS_nPrintf(Conn,"Buffer for input strings: %d octets\n",s+4);
-            for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-                if (Clon->mt>s) s = Clon->mt;
+            for (s=0,Thrd=Lsthread.Cl; Thrd->xc; Thrd++)
+                if (Thrd->mt>s) s = Thrd->mt;
             CAS_nPrintf(Conn,"Buffer for temporary strings: %d octets\n",s+4);
-            if (Srvcfg.stkT) {
-               for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-                   for (k=0; k<Srvcfg.stks; k++)
-                       if (Clon->Sb[k]!=0) {
-                          k = Srvcfg.stks - k;
-                          if (k>s) s = k;
-                          break;
-                          }
-                       else {
-                          for (s=0,Clon=Lstclon.Cl; Clon->Sb; Clon++)
-                              for (k=Srvcfg.stks-1; k>=0; k--)
-                                  if (Clon->Sb[k]!=0) {
-                                     if (k>s) s = k;
-                                     break;
-                                     }
-                          }
-               }
-            CAS_nPrintf(Conn,"Maximum stack size: %d\n",(s+4)*sizeof(int));
+            CAS_nPrintf(Conn,"Maximum stack size: %d octets\n",(s+4)*sizeof(int));
             k = 'S';
             break;
        case 'E':
@@ -1656,126 +1610,116 @@ switch (k) {
             CAS_nPrintf(Conn,CAS_Srvinfo.Rh[0]);
             break;
        default:
-            Clon->rq = k;
-            kill(Othinf.pid,SIGCONT);
-            sigsuspend(&Othinf.omsk);
-            Clon->rq = 0;
+            Thrd->rq = k;
+            pthread_kill(Srvcfg.tid,SIGCONT);
+            sigwaitinfo(&Srvcfg.Wmsk,NULL);
+            Thrd->rq = 0;
             break;
        }
 return k;
 }
 
-static int userRequest(T_cloninfo *Clon) {
+static void *userRequest(T_threadinfo *Thrd) {
 int hk;
-stack_t Ss;
-Ss.ss_sp = Clon->Sb;
-Ss.ss_size = Srvcfg.stks * sizeof(int);
-sigaltstack(&Ss,NULL);
-setSignal(SIGCONT,processSignal,0);
-setSignal(SIGCHLD,processSignal,0);
-setSignal(SIGPIPE,SIG_IGN,0);
-setSignal(SIGSEGV,processSignal,SA_ONSTACK);
-setSignal(SIGFPE,processSignal,0);
-setSignal(SIGALRM,processSignal,0);
 do {
-   if (Othinf.req=='Z') break;
-   if (Clon->sk==0) {
-      sigsuspend(&Othinf.omsk);
+   if (Srvcfg.req=='Z') break;
+   if (Thrd->sk==0) {
+      sigwaitinfo(&Srvcfg.Wmsk,NULL);
       continue;
       }
-   hk = receiveRequest(Clon);
+   hk = receiveRequest(Thrd);
    if (hk==200) {
       #ifdef _Secure_application_server
-      Clon->Co.Bfi[1] = 's';
+      Thrd->Co.Bfi[1] = 's';
       #endif
-      processRequest(&Clon->Co);
+      processRequest(&Thrd->Co);
       }
-   if (hk==404) hk = performAdminRequest(&Clon->Co);
-   if (hk==404) CAS_nPrintf(&Clon->Co,"%s Not found\n",CAS_Srvinfo.Rh[1]);
-   sendToClient(&Clon->Co,NULL,0);
-   closeSocket(Clon);
-   if (Othinf.psu) kill(Othinf.pid,SIGCONT);
+   if (hk==404) hk = performAdminRequest(&Thrd->Co);
+   if (hk==404) CAS_nPrintf(&Thrd->Co,"%s Not found\n",CAS_Srvinfo.Rh[1]);
+   if (Thrd->rq=='S') CAS_multithreading(&Thrd->Co,'R');
+   sendToClient(&Thrd->Co,NULL,0);
+   closeSocket(Thrd);
+   if (Srvcfg.psu) pthread_kill(Srvcfg.tid,SIGCONT);
    } while (1);
-return Clon->pd = Clon->rq = 0;
+Thrd->id = Thrd->rq = 0;
+return NULL;
 }
 
 static void serverCycle(void) {
-T_cloninfo *Clon;
+T_threadinfo *Thrd;
 struct pollfd *Ppo;
 int *Sb, k, n, s;
 char *Ms;
+pthread_attr_setdetachstate(&Srvcfg.Attr,PTHREAD_CREATE_DETACHED);
+s = Srvcfg.stks;
+if (s<PTHREAD_STACK_MIN) s = PTHREAD_STACK_MIN;
+pthread_attr_setstacksize(&Srvcfg.Attr,s);
+setSignal(SIGSEGV,processSignal,SA_ONSTACK);
+setSignal(SIGFPE,processSignal,0);
 setSignal(SIGCONT,processSignal,0);
-setSignal(SIGCHLD,processSignal,0);
-sigemptyset(&Othinf.mask);
-sigaddset(&Othinf.mask,SIGCONT);
-sigaddset(&Othinf.mask,SIGCHLD);
-sigprocmask(SIG_BLOCK,&Othinf.mask,&Othinf.omsk);
-CAS_Srvinfo.data('L');
-CAS_Srvinfo.html('L');
-Othinf.err = initServer();
+setSignal(SIGPIPE,SIG_IGN,0);
+sigfillset(&Srvcfg.Pmsk);
+sigdelset(&Srvcfg.Pmsk,SIGALRM);
+sigdelset(&Srvcfg.Pmsk,SIGQUIT);
+sigdelset(&Srvcfg.Pmsk,SIGTSTP);
+sigfillset(&Srvcfg.Wmsk);
+sigdelset(&Srvcfg.Wmsk,SIGALRM);
+sigdelset(&Srvcfg.Wmsk,SIGCONT);
+sigprocmask(SIG_SETMASK,NULL,&Srvcfg.Pmsk);
+Srvcfg.err = initServer();
 Ms = "";
 #ifdef _Secure_application_server
-Ppo = Othinf.Pof + 1;
-Ppo->fd = checkingPort(Srvcfg.Lpo[1],Lstclon.nc,"only internet (secure) requests");
+Ppo = Srvcfg.Pof + 1;
+Ppo->fd = checkingPort(Srvcfg.Lpo[1],Lsthread.nc,"only internet (secure) requests");
 Ppo->events = POLLIN;
-Othinf.nls++;
+Srvcfg.nls++;
 Ms = " and secure";
 #endif
 fprintf(stderr,"Server active, IPv%d release%s version\n",CAS_Srvinfo.af==AF_INET?4:6,Ms);
 do {
-   Othinf.Pof[0].revents = Othinf.Pof[1].revents = n = 0;
-   if (ppoll(Othinf.Pof,Othinf.nls,NULL,&Othinf.omsk)>0)
-      for (k=0,Ppo=Othinf.Pof; k<Othinf.nls; k++,Ppo++) {
+   Srvcfg.Pof[0].revents = Srvcfg.Pof[1].revents = n = 0;
+   if (ppoll(Srvcfg.Pof,Srvcfg.nls,NULL,&Srvcfg.Wmsk)>0)
+      for (k=0,Ppo=Srvcfg.Pof; k<Srvcfg.nls; k++,Ppo++) {
           s = Ppo->revents & POLLIN;
           if (s==0) continue;
-          s = sizeof(Othinf.San);
-          s = accept(Ppo->fd,(struct sockaddr *)&Othinf.San,&s);
+          s = sizeof(Srvcfg.San);
+          s = accept(Ppo->fd,(struct sockaddr *)&Srvcfg.San,&s);
           if (s<0) continue;
           n++;
-          Clon = cloneAvailable(1);
-          memset(&Clon->Co,0,sizeof(CAS_srvconn_t));
-          memcpy(Clon->Co.Ipc,Srvcfg.Psa,Srvcfg.lsa);
-          Clon->sk = s;
-          Clon->cs = k;
-          if (Clon->pd==0) {
-             Sb = Clon->Sb + Srvcfg.stkT;
-             Clon->pd = clone((int (*)(void *))userRequest,Sb,CLONE_FS|CLONE_FILES|CLONE_VM|SIGCHLD,Clon);
-             }
-          else kill(Clon->pd,SIGCONT);
+          Thrd = threadAvailable(1);
+          memset(&Thrd->Co,0,sizeof(CAS_srvconn_t));
+          memcpy(Thrd->Co.Ipc,Srvcfg.Psa,Srvcfg.lsa);
+          Thrd->sk = s;
+          Thrd->cs = k;
+          if (Thrd->id==0) pthread_create(&Thrd->td,NULL,(void * (*)(void *))userRequest,Thrd);
+             else pthread_kill(Thrd->td,SIGCONT);
           }
-   if (n==0) cloneAvailable(0);
-   } while (Othinf.req!='Z');
-for (Clon=Lstclon.Cl; Clon->Sb; Clon++)
-    kill(Clon->pd,SIGCONT);
+   if (n==0) threadAvailable(0);
+   } while (Srvcfg.req!='Z');
 }
 
 #else
 
-static void serverCycle(void) {
-T_cloninfo *Clon;
-int hk;
-CAS_Srvinfo.data('L');
-CAS_Srvinfo.html('L');
-setSignal(SIGALRM,processSignal,0);
-setSignal(SIGCONT,processSignal,0);
-setSignal(SIGCHLD,processSignal,0);
+static void *serverCycle(void *Arg) {
+T_threadinfo *Thrd;
+int k,l,s;
 initServer();
 fprintf(stderr,"Server active, IPv%d debug version\n",CAS_Srvinfo.af==AF_INET?4:6);
-Clon = Lstclon.Cl;
+Thrd = Lsthread.Cl;
 do {
-   hk = sizeof(Othinf.San);
-   hk = accept(Othinf.Pof[0].fd,(struct sockaddr *)&Othinf.San,&hk);
-   if (hk<0) continue;
-   memset(Clon,0,sizeof(CAS_srvconn_t));
-   memcpy(Clon->Co.Ipc,Srvcfg.Psa,Srvcfg.lsa);
-   Clon->sk = hk;
-   hk = receiveRequest(Clon);
-   if (hk==200) processRequest(&Clon->Co);
+   k = sizeof(Srvcfg.San);
+   k = accept(Srvcfg.Pof[0].fd,(struct sockaddr *)&Srvcfg.San,&k);
+   if (k<0) continue;
+   memset(Thrd,0,sizeof(CAS_srvconn_t));
+   memcpy(Thrd->Co.Ipc,Srvcfg.Psa,Srvcfg.lsa);
+   Thrd->sk = k;
+   k = receiveRequest(Thrd);
+   if (k==200) processRequest(&Thrd->Co);
    else
-   if (hk==404) {
-      hk = checkAdminRequest(&Clon->Co);
-      if (hk<='Z') {
-         switch (hk) {
+   if (k==404) {
+      k = checkAdminRequest(&Thrd->Co);
+      if (k<='Z') {
+         switch (k) {
                 case 'C': readConfig(NULL);
                           explodeHeaders();
                           break;
@@ -1785,35 +1729,70 @@ do {
                 case 'H': CAS_Srvinfo.html('R');
                           CAS_Srvinfo.html('L');
                           break;
-                case 'S': CAS_nPrintf(&Clon->Co,"Buffer for input strings: %d octets\n",Clon->mi+4);
-                          CAS_nPrintf(&Clon->Co,"Buffer for temporary strings: %d octets\n",Clon->mt+4);
+                case 'S': CAS_nPrintf(&Thrd->Co,"Buffer for input strings: %d octets\n",Thrd->mi+4);
+                          CAS_nPrintf(&Thrd->Co,"Buffer for temporary strings: %d octets\n",Thrd->mt+4);
+                          if (Srvcfg.stkT) {
+                             for (l=0; l<Srvcfg.stks; l++)
+                                 if (Srvcfg.Wstk[l]) {
+                                    s = Srvcfg.stks - l;
+                                    break;
+                                    }
+                             }
+                          else {
+                             for (l=Srvcfg.stks-1,s=0; l>=0; l--)
+                                 if (Srvcfg.Wstk[l]) {
+                                    s = l;
+                                    break;
+                                    }
+                               }
+                          CAS_nPrintf(&Thrd->Co,"Maximum stack size: %d octets\n",s*sizeof(int));
                           break;
-                case 'E': deleteExpiredSession(&Clon->Co);
+                case 'E': deleteExpiredSession(&Thrd->Co);
                           break;
                 }
-         CAS_nPrintf(&Clon->Co,"Ok server %s %d (debug version) %s\n",Othinf.Npg,Othinf.pid,whichCommand(hk));
+         CAS_nPrintf(&Thrd->Co,"Ok server %s pid %d (debug version) %s\n",Srvcfg.Nprg,getpid(),whichMessage(k));
          }
-      if (hk=='W') {
-         sendToClient(&Clon->Co,NULL,0);
-         recv(Clon->sk,Clon->Bf,1020,0);
-         if (memcmp(Clon->Bf,"Ok data",7)==0) {
+      if (k=='W') {
+         sendToClient(&Thrd->Co,NULL,0);
+         recv(Thrd->sk,Thrd->Bf,1020,0);
+         if (memcmp(Thrd->Bf,Okdt,7)==0) {
             CAS_Srvinfo.data('R');
             CAS_Srvinfo.data('L');
             }
          }
-      if (hk==404) CAS_nPrintf(&Clon->Co,"%s Not found\n",CAS_Srvinfo.Rh[1]);
+      if (k==404) CAS_nPrintf(&Thrd->Co,"%s Not found\n",CAS_Srvinfo.Rh[1]);
       }
-   sendToClient(&Clon->Co,NULL,0);
-   closeSocket(Clon);
-   } while (hk!='Z');
+   sendToClient(&Thrd->Co,NULL,0);
+   closeSocket(Thrd);
+   } while (k!='Z');
+return NULL;
 }
 
 #endif
 
+void CAS_multithreading(CAS_srvconn_t *Conn, char opt) {
+#ifdef _Release_application_server
+static struct timespec Tmsp = { 0, 0 } ;
+T_threadinfo *Thrd;
+Thrd = (T_threadinfo *)Conn;
+switch (opt) {
+       case 'R': if (Thrd->rq!='S') return;
+                 break;
+       case 'S': if (Thrd->rq) return;
+                 break;
+       default: return;
+       }
+Thrd->rq = opt;
+pthread_kill(Srvcfg.tid,SIGCONT);
+if (opt=='S') sigwaitinfo(&Srvcfg.Wmsk,NULL);
+#endif
+}
+
 static void dummyLoadFree(char op) { }
 
 int main(int agc, char **Agv) {
-int o;
+stack_t Ss;
+int s;
 CAS_Srvinfo.Nv = "";
 CAS_Srvinfo.data = CAS_Srvinfo.html = dummyLoadFree;
 CAS_registerUserSettings();
@@ -1821,7 +1800,7 @@ if (CAS_Srvinfo.preq==NULL) {
    fputs("Process request (CAS_Srvinfo.prq) not defined\n",stderr);
    exit(1);
    }
-Othinf.pid = getpid();
+Srvcfg.tid = pthread_self();
 #ifdef _Secure_application_server
 OpenSSL_add_all_algorithms();
 SSL_load_error_strings();
@@ -1829,28 +1808,50 @@ ERR_load_BIO_strings();
 Secinf.Mtd = (SSL_METHOD *)TLS_server_method();
 #endif
 readConfig(Agv[0]);
-o = 6;
-if (agc==2)
-   for (o=0; Cmds[o]; o++)
-       if (strcmp(Agv[1],Cmds[o])==0) break;
-if (Cmds[o]==NULL) {
+s = 6;
+if (agc==2) for (s=0; Mssg[s]; s++)
+   if (strcmp(Agv[1],Mssg[s])==0) break;
+if (Mssg[s]==NULL) {
    fputs("The argument of command line must be:\n",stderr);
-   fprintf(stderr,"%s\tStart server\n",Cmds[0]);
-   fprintf(stderr,"%s\tStop server\n",Cmds[1]);
-   fprintf(stderr,"%s\tReload config\n",Cmds[2]);
-   fprintf(stderr,"%s\tReload data\n",Cmds[3]);
-   fprintf(stderr,"%s\tReload html\n",Cmds[4]);
-   fprintf(stderr,"%s\tShow info\n",Cmds[5]);
+   fprintf(stderr,"%s\tStart server\n",Mssg[0]);
+   fprintf(stderr,"%s\tStop server\n",Mssg[1]);
+   fprintf(stderr,"%s\tReload config\n",Mssg[2]);
+   fprintf(stderr,"%s\tReload data\n",Mssg[3]);
+   fprintf(stderr,"%s\tReload html\n",Mssg[4]);
+   fprintf(stderr,"%s\tShow info\n",Mssg[5]);
    return 1;
    }
-if (o==0) {
+if (s==0) {
    if (CAS_Srvinfo.ss>0) {
-      sprintf(Othinf.Buf,"%s.ssn",Othinf.Npg);
-      CAS_initSessionSupport(Othinf.Buf);
+      sprintf(Srvcfg.Buf,"%s.ssn",Srvcfg.Nprg);
+      CAS_initSessionSupport(Srvcfg.Buf);
       }
-   Srvcfg.stkT = Srvcfg.stks; /* drop this line if stack grows upward */
+   CAS_Srvinfo.data('L');
+   CAS_Srvinfo.html('L');
+   setSignal(SIGALRM,processSignal,0);
+   pthread_attr_init(&Srvcfg.Attr);
+   #ifdef _Release_application_server
+   s = MINSIGSTKSZ;
+   #ifdef _Secure_application_server
+   s += 4096;
+   Srvcfg.stks += 4096;
+   #endif
+   Srvcfg.Wstk = malloc(s);
+   Ss.ss_sp = Srvcfg.Wstk;
+   Ss.ss_size = s;
+   sigaltstack(&Ss,NULL);
    serverCycle();
+   #else
+   Srvcfg.stkT++; /* drop this line if stack grows upward */
+   s = Srvcfg.stks;
+   if (s<PTHREAD_STACK_MIN) s = PTHREAD_STACK_MIN;
+   Srvcfg.Wstk = calloc(s,1);
+   Srvcfg.stks /= sizeof(int);
+   pthread_attr_setstack(&Srvcfg.Attr,Srvcfg.Wstk,s);
+   pthread_create(&Srvcfg.tid,&Srvcfg.Attr,serverCycle,NULL);
+   pthread_join(Srvcfg.tid,NULL);
+   #endif
    }
-else processCommand(Cmds[o]);
+else processMessage(Mssg[s]);
 return 0;
 }
