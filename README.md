@@ -7,7 +7,7 @@ This online distribution includes:
 - csrvA to csrvJ directories: examples about how to develop your own C application server (GET requests);
 - dsrvK to dsrvO directories: examples about how to develop your own C application server (POST requests);
 - dsrvO directory: web application based on cApps framework;
-- esrvX: the https support
+- esrvX: the https support;
 - cApps-get.pdf documentation, which details every example from csrvA to csrvJ;
 - cApps-post.pdf documentation, which details every example from dsrvK to esrvX.
 
