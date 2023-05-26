@@ -84,20 +84,19 @@ static void benchMarkConfig(void) {
 int k;
 PTHR_inf *Pt;
 fputs("Benchmark - online dictionary server\n",stderr);
-fputs("How much threads (between 1 and 25) ? ",stderr);
+fputs("How much threads (between 1 and 16) ? ",stderr);
 k = scanf("%d",&nthrs);
 if (nthrs<=0) nthrs = 1;
-if (nthrs>25) nthrs = 25;
+if (nthrs>16) nthrs = 16;
 while (NREQS%nthrs>0) nthrs++;
-fprintf(stderr,"Number of threads: %d\n",nthrs);
-fputs("Enter the Ip version (4 or 6) : ",stderr);
+fputs("Ip version (4 or 6) : ",stderr);
 k = scanf("%d",&ipv);
 ipv = ipv == 4 ? AF_INET : AF_INET6;
 fputs("Ip version 4, local host 127.0.0.1\nIp version 6, local host ::1\n",stderr);
-fputs("Enter the Ip address of server: ",stderr);
+fputs("Ip address of server: ",stderr);
 k = scanf("%s",Ips);
 inet_pton(ipv,Ips,Ipa);
-fputs("Enter the port number: ",stderr);
+fputs("Port number: ",stderr);
 k = scanf("%d",&port);
 Lthr = calloc(nthrs+1,sizeof(PTHR_inf));
 for (k=0,Pt=Lthr; k<nthrs; k++,Pt++)
@@ -142,7 +141,7 @@ for (Pd=Pdi; Pd<Pdf; Pd++) {
        k = BFSIZE - (B - Arg->B) - 1;
        r = recv(Arg->s,B,k,0);
        B += r; /* drop this line if you don't know maximum size of html page */
-       } while (r==k);
+       } while (r>0);
     checkResponse(Arg->B);
     close(Arg->s);
     }
