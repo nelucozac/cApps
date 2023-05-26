@@ -19,7 +19,6 @@ The examples from csrvA to csrvJ cover a lot of problems which can be solved usi
 - using your own log file to record every request coming from clients;
 - denying requests coming from some particular Ip addresses;
 - developing your own functions to create strings without memory allocation / deallocation (dealing with temporary strings);
-- handling the timeout problem (time limit of the process exceeds);
 - using mysql databases;
 - basic authentication, together with Base64 encoding and decoding functions.
 
