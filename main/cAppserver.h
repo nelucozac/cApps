@@ -9,11 +9,8 @@
 
 #ifndef _C_application_server_h
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #define _C_application_server_h
+#define _GNU_SOURCE
 
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +19,7 @@
 #include <time.h>
 #include <errno.h>
 
+#include <pthread.h>
 #include <stdarg.h>
 
 #include <poll.h>
@@ -33,10 +31,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sched.h>
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -44,9 +38,6 @@
 
 #include <signal.h>
 #include <limits.h>
-
-#include <sys/syscall.h>
-#include <linux/futex.h>
 
 #define CAS_endOfString(S, k) ((S) + (strlen(S) + (k)))
 
@@ -56,7 +47,6 @@ typedef struct {
         char *Bfi, *Bfo, *Bft;
         char *Pct, *Pet;
         char Ufn[4];
-        volatile char tmo;
         void *Usr, *Ssn;
         } CAS_srvconn_t;
 
@@ -75,8 +65,7 @@ void CAS_registerUserSettings(void);
 
 double CAS_getTime(CAS_srvconn_t *Conn);
 
-int CAS_explodeHtm(char *Htmi, void *Htmo, int siz),
-    CAS_serverMutex(CAS_srvconn_t *Conn, int32_t *Mtx, char op);
+int CAS_explodeHtm(char *Htmi, void *Htmo, int siz);
 
 char *CAS_getParamName(CAS_srvconn_t *Conn, char *From),
      *CAS_getParamValue(CAS_srvconn_t *Conn, char *Name, char *From),
@@ -87,6 +76,8 @@ char *CAS_getParamName(CAS_srvconn_t *Conn, char *From),
      *CAS_sPrintf(CAS_srvconn_t *Conn, char *Fmt, ...),
      *CAS_loadTextFile(char *Nft),
      *CAS_buildMimeTypeList(char *Cfg);
+
+void CAS_multithreading(CAS_srvconn_t *Conn, char opt);
 
 #define CAS_getThisParamValue(Conn, Pnam) (Pnam + strlen(Pnam) + 1)
 
