@@ -28,16 +28,3 @@ The examples from csrvA to csrvJ cover a lot of problems which can be solved usi
 
 Every example includes all the necessary files to build and run the application server:
 C source files, compile scripts, configuration files, data files (if necessary) etc.
-
------
-
-*At this time, only GET requests are used by these examples.*
-*POST, LOAD requests and sessions are not yet documented.*
-
-*However, you can use POST requests, see Appendix G* (*from cApps-get.pdf document*) *for details.*
-
-*Coming soon:*
-- *details about how to manage POST requests;*
-- *session support;*
-- *LOAD* (*ad-hoc created*) *method to upload files to server;*
-- *https support.*
