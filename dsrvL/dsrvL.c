@@ -96,7 +96,7 @@ Ussn->etm = Conn->uts + 3600;
 static void processRequest(CAS_srvconn_t *Conn) {
 char *Opt, *Sva, *Msg;
 int k;
-Opt = CAS_getLastParamValue(Conn,"Option");
+Opt = CAS_getLastParamValue(Conn,"Action");
 if (strcmp(Opt,"Login")==0) {
    k = checkIfLoginOk(Conn);
    switch (k) {
