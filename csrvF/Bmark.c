@@ -4,7 +4,6 @@
 */
 
 #include "cAppserver.h"
-#include <pthread.h>
 
 #define NREQS 10000
 #define BFSIZE 16384
