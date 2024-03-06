@@ -13,7 +13,7 @@ This online distribution includes:
 
 ### **cApps-get.pdf** documentation ###
 
-The examples cover a lot of problems which can be solved using this framework:
+The examples from csrvA to csrvJ cover a lot of problems, which can be solved using this framework:
 - obtaining GET parameters (URL) and header messages;
 - sending files to client / browser;
 - generating tables with variable number of rows and / or columns;
@@ -24,11 +24,18 @@ The examples cover a lot of problems which can be solved using this framework:
 - denying requests coming from some particular Ip addresses;
 - developing your own functions to create strings without memory allocation / deallocation (dealing with temporary strings);
 - using mysql databases;
-- basic authentication, together with Base64 encoding and decoding functions;
+- basic authentication, together with Base64 encoding and decoding functions.
+
+### **cApps-get.pdf** documentation ###
+
+The examples from dsrvK to dsrvO cover another set of problems
 - session support (with and without cookies);
 - protection against slowloris attack;
-- how to upload files on server;
-- https support.
+- how to upload files on server.
+
+dsrvP includes a web application based on this framework.
+
+esrvX covers the https support.
 
 Every example includes all the necessary files to build and run the application server:
 C source files, compile scripts, configuration files, data files (if necessary) etc.
