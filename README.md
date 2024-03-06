@@ -26,7 +26,7 @@ The examples from csrvA to csrvJ cover a lot of problems, which can be solved us
 - using mysql databases;
 - basic authentication, together with Base64 encoding and decoding functions.
 
-### **cApps-get.pdf** documentation ###
+### **cApps-post.pdf** documentation ###
 
 The examples from dsrvK to dsrvO cover another set of problems
 - session support (with and without cookies);
