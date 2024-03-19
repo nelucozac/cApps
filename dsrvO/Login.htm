@@ -1,0 +1,29 @@
+<!Doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>Fourth C app with sessions</title>
+  <meta charset="UTF-8">
+  <meta name=viewport content="width=device-width, initial-scale=1">
+  <script type="text/javascript">
+function stopRKey(E) {
+ if (!E) E = window.event ? window.event : null;
+ var N = E.target;
+ if (!N) N = E.srcElement ? evt.srcElement : null;
+ if (E.keyCode==13) if (N.type=='text') return false;
+ return true;
+ }
+document.onkeypress = stopRKey;
+  </script>
+</head>
+<body><form action="/" method=post>
+  <div style="color:red">%s</div>
+  User name:
+  <input type=text name=Uname size=8 maxlength=8><br><br>
+  <input type=submit name=Action value=Login><br><br>
+  <span style="color:purple"><b>Beware!</b><br>
+    User name is case sensitive<br>
+    Don't use the <b><i>Back</i></b> button of the browser<br>
+    Use the application buttons
+  </span>
+</form></body>
+</html>
