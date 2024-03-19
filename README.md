@@ -31,11 +31,9 @@ The examples from csrvA to csrvJ cover a lot of problems, which can be solved us
 The examples from dsrvK to dsrvO cover another set of problems
 - session support (with and without cookies);
 - protection against slowloris attack;
-- how to upload files on server.
-
-dsrvP includes a web application based on this framework.
-
-esrvX covers the https support.
+- how to upload files on server;
+- complete web application based on this framework;
+- https support.
 
 Every example includes all the necessary files to build and run the application server:
 C source files, compile scripts, configuration files, data files (if necessary) etc.
