@@ -28,7 +28,7 @@ The examples from csrvA to csrvJ cover a lot of problems, which can be solved us
 
 ### **cApps-post.pdf** documentation ###
 
-The examples from dsrvK to dsrvO cover another set of problems
+The examples from dsrvK to dsrvO and esrvX cover another set of problems
 - session support (with and without cookies);
 - protection against slowloris attack;
 - how to upload files on server;
