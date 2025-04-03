@@ -1,0 +1,41 @@
+<!Doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>Home page</title>
+  <meta charset="UTF-8">
+  <meta name=viewport content="width=device-width, initial-scale=1">
+  <script type="text/javascript">
+function Disable() {
+ document.Form.Insert.disabled = true;
+ }
+function textAdjust(O) {
+ O.style.height = "1px";
+ O.style.height = (25+O.scrollHeight)+"px";
+ }
+function stopRKey(E) {
+ if (!E) E = window.event ? window.event : null;
+ var N = E.target;
+ if (!N) N = E.srcElement ? evt.srcElement : null;
+ if (E.keyCode==13) if (N.type=='text') return false;
+ return true;
+ }
+document.onkeypress = stopRKey;
+  </script>
+</head>
+<body><form name=Form action="/" method=post>
+<table cellspacing=5>
+  <tr>
+    <td>User: %s</td>
+    <td align=right>
+      <input type=submit name=Action value=Home onclick="javascript:Disable()">
+    </td>
+  </tr>
+  <tr><td colspan=2>
+    Text to insert:<br>
+    <textarea name=Insert cols=80 maxlength=12000 onkeyup="javascript:textAdjust(this)" style="overflow:hidden">%s</textarea>
+  </td></tr>
+  <tr><td>
+    <input type=submit name=Action value=Insert>
+  </td></tr>
+</table></form></body>
+</html>
