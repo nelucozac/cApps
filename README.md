@@ -4,17 +4,17 @@
 
 This online distribution includes:
 - main directory, the following files: cAppserver.c, cAppserver.h, cAppserver.cfg, Stack.c, Sortlog.c;
-- csrvA to csrvJ directories: examples about how to develop your own C application server (GET requests);
-- dsrvK to dsrvO directories: examples about how to develop your own C application server (POST requests);
-- dsrvP directory: web application based on cApps framework;
+- csrvA to csrvI directories: examples about how to develop your own C application server (GET requests);
+- dsrvJ to dsrvM directories: examples about how to develop your own C application server (POST requests);
+- dsrvN directory: web application based on cApps framework;
 - esrvX: the https support;
 - cApps-get.pdf documentation, which details every example from csrvA to csrvJ;
 - cApps-post.pdf documentation, which details every example from dsrvK to esrvX.
 
 ### **cApps-get.pdf** documentation ###
 
-The examples from csrvA to csrvJ cover a lot of problems, which can be solved using this framework:
-- obtaining GET parameters (URL) and header messages;
+The examples from csrvA to csrvI cover a lot of problems, which can be solved using this framework:
+- obtaining GET parameters (from URL) and header messages;
 - sending files to client / browser;
 - generating tables with variable number of rows and / or columns;
 - complex problems: concurrent access to a big file using fast mutexes;
@@ -28,8 +28,9 @@ The examples from csrvA to csrvJ cover a lot of problems, which can be solved us
 
 ### **cApps-post.pdf** documentation ###
 
-The examples from dsrvK to dsrvO and esrvX cover another set of problems
-- session support (with and without cookies);
+The examples from dsrvJ to dsrvN and esrvX cover another set of problems
+- obtaining POST parameters;
+- session support using cookies;
 - protection against slowloris attack;
 - how to upload files on server;
 - complete web application based on this framework;
