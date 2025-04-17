@@ -8,8 +8,8 @@ This online distribution includes:
 - dsrvJ to dsrvM directories: examples about how to develop your own C application server (POST requests);
 - dsrvN directory: web application based on cApps framework;
 - esrvX: the https support;
-- cApps-get.pdf documentation, which details every example from csrvA to csrvJ;
-- cApps-post.pdf documentation, which details every example from dsrvK to esrvX.
+- cApps-get.pdf documentation, which details every example from csrvA to csrvI;
+- cApps-post.pdf documentation, which details every example from dsrvJ to esrvX.
 
 ### **cApps-get.pdf** documentation ###
 
