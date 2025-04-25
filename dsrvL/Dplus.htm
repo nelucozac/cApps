@@ -1,0 +1,55 @@
+<!Doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+<style>
+  body { font-family:sans-serif }
+  textarea { font-family:sans-serif,proportional }
+</style>
+<script type="text/javascript">
+function Evnt(E) { }
+function Send() {
+ var Xht, maxPo = %d, maxSz = %d, Fldt = document.Frm.Det;
+ var Detv = Fldt.value;
+ if (Detv.length>maxSz) Detv = Detv.substring(0,maxSz);
+ if (Detv.length>maxPo) {
+    Fldt.disabled = true;
+    Xht = new XMLHttpRequest();
+    Xht.open('LOAD','/?Action=Load&fsz='+Detv.length,true);
+    Xht.onload = Evnt;
+    Xht.send(Detv);
+    alert('Detail uploaded on server');
+    }
+ }
+function textAdjust(O) {
+ O.style.height = 0;
+ O.style.height = O.scrollHeight + 'px';
+ }
+function stopRKey(E) {
+ if (!E) E = window.event ? window.event : null;
+ var N = E.target;
+ if (!N) N = E.srcElement ? E.srcElement : null;
+ if (E.keyCode==13) if (N.type=='text') return false;
+ return true;
+ }
+document.onkeypress = stopRKey;
+</script></head>
+<body><form name=Frm action="/" method=post><table cellspacing=3>
+  <tr>
+    <td>Info</td>
+    <td><input type=text name=Inf size=80 maxlength=80></td>
+  </tr>
+  <tr><td colspan=2><hr></td></tr>
+  <tr>
+    <td rowspan=2>Detail</td>
+    <td>
+      if length of string exceeds %d octets, it will be sent to server file<br>
+      maximum allowed string size: %d octets
+    </td>
+  </tr>
+  <tr>
+    <td colspan=2>
+      <textarea name=Det cols=80 maxlength=%d onkeyup="javascript:textAdjust(this)" style="overflow:hidden"></textarea>
+    </td>
+  </tr>
+  <tr><td colspan=2><hr></td></tr>
+  <tr><td><input type=submit name=Action value=Submit onclick="javascript:Send()"></td></tr>
+</table></form></body></html>
