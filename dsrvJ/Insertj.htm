@@ -9,8 +9,8 @@ function Disable() {
  document.Form.Insert.disabled = true;
  }
 function textAdjust(O) {
- O.style.height = "1px";
- O.style.height = (25+O.scrollHeight)+"px";
+ O.style.height = 0;
+ O.style.height = O.scrollHeight + 'px';
  }
 function stopRKey(E) {
  if (!E) E = window.event ? window.event : null;
