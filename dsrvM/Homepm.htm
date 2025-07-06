@@ -1,0 +1,40 @@
+<!Doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head>
+<title>Home page</title>
+<meta charset="UTF-8">
+<meta name=viewport content="width=device-width, initial-scale=1">
+<script type="text/javascript">
+
+var Xht, Txi;
+var fsz = %d;
+
+function Evnt(E) {
+ Txi.innerHTML += E.target.responseText;
+ }
+
+function Load(Fid, Tid) {
+ var I = document.getElementById(Fid);
+ var F = I.files[0];
+ Txi = document.getElementById(Tid);
+ Txi.innerHTML = F.name + ' ' + F.size + 'octets<br>';
+ if (F.size<=fsz) {
+    Txi.innerHTML += 'Server response: ';
+    Xht = new XMLHttpRequest();
+    Xht.open('LOAD','/?fname='+F.name,true);
+    Xht.onload = Evnt;
+    Xht.send(F);
+    }
+ else Txi.innerHTML += 'Upload not accepted';
+ }
+
+</script></head>
+<body><form action="/" method=post><table><tr><td>
+User: %s<br><br>
+String to be sent to server:<br>
+<input type=text name=Str size=45 maxlength=45 value="%s"><br><br>
+<input type=submit name=Action value="Send string"><hr>
+Upload files to server, maximum allowed file size: %d octets<br><br>
+<input type=button value=Upload onclick="javascript:Load('Fi','Ti')"><br><br>
+File: <input type=file id=Fi name=F><br>
+<span id=Ti></span>
+</td></tr></table></form></body></html>
